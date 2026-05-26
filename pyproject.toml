@@ -1,0 +1,23 @@
+[project]
+name = "mindweather"
+version = "0.1.0"
+description = "SAE feature steering on Gemma 3 — bend a language model's emotional weather"
+requires-python = ">=3.11"
+dependencies = [
+    "torch>=2.4",
+    "transformers>=4.50",
+    "accelerate>=0.34",
+    "huggingface_hub>=0.26",
+    "sae_lens>=4.0",
+    "numpy",
+    "ipykernel",
+    "jupyter",
+    "matplotlib",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+app = ["gradio>=4.40"]
+
+[tool.uv]
+dev-dependencies = ["ruff"]

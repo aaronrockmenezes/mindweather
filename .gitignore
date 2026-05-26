@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.ipynb_checkpoints/
+.DS_Store
+hf_cache/
+sae_cache/
+*.safetensors
+*.npy
+.env
