@@ -2,17 +2,26 @@
 SAE feature steering on Gemma-3-1B-IT.
 
 Examples:
-    python steer.py --prompt "Tell me about your day" --mix sadness=60 --baseline
-    python steer.py --prompt "How are you?" --mix anger=80,joy=-40
-    python steer.py --prompt "Describe a sunny park" --mix anxiety=50,fear=40,surprise=30 --max-new 150
-    python steer.py --prompt "What do you think of cats?" --mix love=120  # insane affection
-    python steer.py --prompt "Tell me a story" --mix sadness=80,fear=50,surprise=60 --max-new 200  # schizo
+    # Named preset
+    python steer.py --preset schizo --baseline
+    python steer.py --preset depressed --max-new 200
 
-Scale ranges (after unit-norm of decoder direction): 30-80 typical, 100+ extreme.
-SAE feature activations in emotion prompts were ~30-80 — scale matches that.
+    # Manual mix (uses CURATED feat per emotion)
+    python steer.py --prompt "Tell me about your day" --mix sadness=600 --baseline
+    python steer.py --prompt "How are you?" --mix anger=800,joy=-400
 
-By default uses the rank-0 (top-scoring) feature per emotion from features.json.
-Use --rank N to pick the Nth-ranked feature instead (0-indexed).
+    # Raw feature id
+    python steer.py --prompt "Hello" --feat-id 293 --scale 700
+
+    # Ablate (zero out a feature's contribution during forward)
+    python steer.py --prompt "Tell me about your day" --ablate 92          # kill polysemantic emotion feat
+    python steer.py --prompt "..." --ablate 92,374 --mix sadness=600        # ablate + amplify combo
+
+Scale ranges (decoder rows unit-norm, resid norm ~6500/token):
+    300-500 mild, 500-900 clean, 900-1200 strong, 1500+ breaks model.
+Total patch norm budget ~900 for multi-emotion stacks.
+
+By default uses CURATED feat per emotion. Use --rank N for Nth-ranked from features.json.
 """
 
 import argparse
@@ -26,23 +35,19 @@ from sae_lens import SAE
 MODEL_ID = 'google/gemma-3-1b-it'
 SAE_RELEASE = 'gemma-scope-2-1b-it-res'
 
-# Curated picks: cleanest single-emotion feat per emotion.
-# Chosen from features.json by: high consistency, low neutral activation, minimal cross-emotion bleed.
-# Override with --rank N (uses ranked list from features.json) or --feat-id ID (raw).
 CURATED = {
-    'anger':    2239,   # true anger-expression feature (was 5088 = anger-advice, polysemantic gotcha)
-    'sadness':  2697,   # consistency 1.0, sadness-only, strong
-    'joy':      2562,   # consistency 1.0
-    'fear':     15713,  # consistency 1.0, fear-only
-    'disgust':  4493,   # consistency 0.92, cleanest
-    'surprise': 15019,  # consistency 0.92, surprise-only
-    'love':     293,    # interpersonal "love TO you" feature, strong
-    'anxiety':  952,    # consistency 0.75
+    'anger':    2239,
+    'sadness':  2697,
+    'joy':      2562,
+    'fear':     15713,
+    'disgust':  4493,
+    'surprise': 15019,
+    'love':     293,
+    'anxiety':  952,
 }
 
 
 def parse_mix(s: str) -> dict[str, float]:
-    """Parse 'sadness=8,anger=-4' → {'sadness': 8.0, 'anger': -4.0}."""
     out = {}
     for chunk in s.split(','):
         chunk = chunk.strip()
@@ -53,14 +58,22 @@ def parse_mix(s: str) -> dict[str, float]:
     return out
 
 
-def load_steering_dirs(sae: SAE, features: dict, mix: dict[str, float], rank: int | None, normalize: bool = True):
-    """Return list of (emotion, feat_id, scale, direction) for active emotions.
+def parse_int_list(s: str) -> list[int]:
+    return [int(x.strip()) for x in s.split(',') if x.strip()]
 
-    If rank is None, uses CURATED feat_id per emotion.
-    Otherwise uses Nth-ranked feat from features.json.
-    """
+
+def load_preset(name: str, presets_path: Path) -> tuple[dict[str, float], str | None]:
+    """Return (mix, suggested_prompt) for named preset."""
+    data = json.loads(presets_path.read_text())
+    if name not in data['presets']:
+        raise SystemExit(f"preset '{name}' not in {presets_path}. Have: {list(data['presets'])}")
+    p = data['presets'][name]
+    return p['mix'], p.get('suggested_prompt')
+
+
+def load_steering_dirs(sae: SAE, features: dict, mix: dict[str, float], rank: int | None, normalize: bool = True):
     dirs = []
-    W_dec = sae.W_dec.detach()  # [d_sae, d_model]
+    W_dec = sae.W_dec.detach()
     for emo, scale in mix.items():
         if rank is None:
             if emo not in CURATED:
@@ -84,27 +97,46 @@ def load_steering_dirs(sae: SAE, features: dict, mix: dict[str, float], rank: in
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--prompt', required=True)
-    ap.add_argument('--mix', default=None, help="e.g. 'sadness=60,anger=-30'. Uses CURATED feat per emotion unless --rank set.")
-    ap.add_argument('--rank', type=int, default=None, help='Use Nth-ranked feat from features.json (default: use CURATED)')
-    ap.add_argument('--feat-id', type=int, default=None, help='Raw SAE feature id (overrides --mix)')
+    ap.add_argument('--prompt', default=None, help='Prompt text (or use preset suggested_prompt)')
+    ap.add_argument('--preset', default=None, help='Named preset from presets.json (overrides --mix)')
+    ap.add_argument('--mix', default=None, help="e.g. 'sadness=600,anger=-300'")
+    ap.add_argument('--rank', type=int, default=None, help='Use Nth-ranked feat from features.json instead of CURATED')
+    ap.add_argument('--feat-id', type=int, default=None, help='Raw SAE feature id (overrides --mix/--preset)')
     ap.add_argument('--scale', type=float, default=None, help='Scale for --feat-id')
-    ap.add_argument('--layer', type=int, default=None, help='Override layer')
+    ap.add_argument('--ablate', default=None, help='Comma list of feat ids to ablate (zero contribution)')
+    ap.add_argument('--layer', type=int, default=None)
     ap.add_argument('--max-new', type=int, default=120)
     ap.add_argument('--temperature', type=float, default=0.0)
     ap.add_argument('--features', type=str, default='features.json')
-    ap.add_argument('--baseline', action='store_true', help='Also print unsteered output for comparison')
-    ap.add_argument('--debug', action='store_true', help='Print resid + patch norms inside hook')
-    ap.add_argument('--no-norm', action='store_true', help='Skip unit-norm of decoder direction (raw W_dec row)')
+    ap.add_argument('--presets', type=str, default='presets.json')
+    ap.add_argument('--baseline', action='store_true')
+    ap.add_argument('--debug', action='store_true')
+    ap.add_argument('--no-norm', action='store_true')
     args = ap.parse_args()
 
-    feat_path = Path(args.features)
-    if not feat_path.exists():
-        feat_path = Path(__file__).parent / args.features
+    repo_root = Path(__file__).parent
+    feat_path = Path(args.features) if Path(args.features).exists() else repo_root / args.features
     payload = json.loads(feat_path.read_text())
     layer = args.layer if args.layer is not None else payload['layer']
     sae_id = payload['sae_id']
     features = payload['features']
+
+    # Resolve preset → mix + prompt
+    if args.preset is not None:
+        presets_path = Path(args.presets) if Path(args.presets).exists() else repo_root / args.presets
+        preset_mix, suggested = load_preset(args.preset, presets_path)
+        mix_str = ','.join(f'{k}={v}' for k, v in preset_mix.items())
+        print(f"[preset] '{args.preset}' → {mix_str}")
+        if args.mix is None:
+            args.mix = mix_str
+        if args.prompt is None:
+            if suggested is None:
+                raise SystemExit(f"preset '{args.preset}' has no suggested_prompt; pass --prompt")
+            args.prompt = suggested
+            print(f"[preset] using suggested_prompt: {suggested!r}")
+
+    if args.prompt is None:
+        raise SystemExit('need --prompt (or --preset with suggested_prompt)')
 
     device = 'mps' if torch.backends.mps.is_available() else 'cpu'
     print(f'[load] device={device} layer={layer} sae={sae_id}')
@@ -112,42 +144,66 @@ def main():
     tok = AutoTokenizer.from_pretrained(MODEL_ID)
     model = AutoModelForCausalLM.from_pretrained(MODEL_ID, dtype=torch.bfloat16, device_map=device).eval()
     sae = SAE.from_pretrained(release=SAE_RELEASE, sae_id=sae_id, device=device)
+    W_dec = sae.W_dec.detach().float()  # [d_sae, d_model]
 
+    # --- amplification dirs ---
     normalize = not args.no_norm
+    dirs = []
     if args.feat_id is not None:
         if args.scale is None:
             raise SystemExit('--feat-id requires --scale')
-        W_dec = sae.W_dec.detach()
-        d = W_dec[args.feat_id].float()
+        d = W_dec[args.feat_id]
         raw_norm = d.norm().item()
         if normalize:
             d = d / d.norm()
         print(f'  feat {args.feat_id}: ||W_dec|| = {raw_norm:.4f} (normalize={normalize})')
         dirs = [(f'feat{args.feat_id}', args.feat_id, args.scale, d)]
-    else:
-        if args.mix is None:
-            raise SystemExit('need --mix or --feat-id')
+    elif args.mix is not None:
         mix = parse_mix(args.mix)
         dirs = load_steering_dirs(sae, features, mix, args.rank, normalize=normalize)
 
-    pick_source = f'rank={args.rank}' if args.rank is not None else 'curated' if args.feat_id is None else 'raw'
-    print(f'[steer] ({pick_source})', ', '.join(f'{e}(feat {fid})×{s:+.1f}' for e, fid, s, _ in dirs))
+    pick_source = f'rank={args.rank}' if args.rank is not None else 'preset' if args.preset else 'curated' if args.feat_id is None else 'raw'
+    if dirs:
+        print(f'[steer] ({pick_source})', ', '.join(f'{e}(feat {fid})×{s:+.1f}' for e, fid, s, _ in dirs))
 
-    # Sum directions weighted by scale → single patch vector (fp32 for precision)
+    # Sum patch (fp32)
     patch = torch.zeros(model.config.hidden_size, device=device, dtype=torch.float32)
     for _, _, scale, d in dirs:
         patch = patch + scale * d.to(device=device, dtype=torch.float32)
-    print(f'  patch norm: {patch.norm().item():.3f}')
+    if dirs:
+        print(f'  patch norm: {patch.norm().item():.3f}')
+
+    # --- ablation feats ---
+    ablate_ids = parse_int_list(args.ablate) if args.ablate else []
+    if ablate_ids:
+        print(f'[ablate] feats: {ablate_ids}')
+        # Pre-cache decoder rows for ablation
+        ablate_dirs = W_dec[ablate_ids].to(device=device, dtype=torch.float32)  # [n_ablate, d_model]
+    else:
+        ablate_dirs = None
+
+    if not dirs and not ablate_ids:
+        raise SystemExit('need at least one of --mix, --preset, --feat-id, --ablate')
 
     call_count = {'n': 0}
     def steer_hook(_, __, output):
         is_tuple = isinstance(output, tuple)
         h = output[0] if is_tuple else output
-        # fp32 add to dodge bf16 rounding losing small patch components
         h_fp32 = h.float()
+
+        # Ablate: subtract feature contributions
+        if ablate_dirs is not None:
+            with torch.no_grad():
+                feats = sae.encode(h_fp32)  # [B, T, d_sae]
+            # contribution of each ablate feat = feats[..., id] * W_dec[id]
+            contribs = feats[..., ablate_ids].unsqueeze(-1) * ablate_dirs.view(1, 1, len(ablate_ids), -1)
+            h_fp32 = h_fp32 - contribs.sum(dim=-2)
+
+        # Amplify: add patch
         h_new = (h_fp32 + patch).to(h.dtype)
+
         if args.debug and call_count['n'] < 3:
-            print(f'    hook#{call_count["n"]}: resid_norm={h_fp32.norm().item():.1f} '
+            print(f'    hook#{call_count["n"]}: resid_norm={h.float().norm().item():.1f} '
                   f'shape={tuple(h.shape)} is_tuple={is_tuple}')
         call_count['n'] += 1
         return (h_new,) + output[1:] if is_tuple else h_new

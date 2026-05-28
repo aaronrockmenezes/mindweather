@@ -216,6 +216,41 @@ Next: Gradio app (Phase 4).
 
 ---
 
+## Phase A — tooling boost (2026-05-27)
+
+### A1 — `inspect_prompt.py`
+
+Top-k feature inspector. Given prompt, dumps mean / last-token activations for top feats with Neuronpedia URLs and "known" emotion tags from features.json.
+
+**Lesson**: BOS token has huge resid magnitude — feats firing on BOS dominate mean if not excluded. Added `--include-bos` flag, default skips BOS. With skip, top feats land on content tokens correctly.
+
+`--known-only` filter is best mode for emotion debugging — shows immediately which features are polysem vs single-emotion.
+
+Example output for "I am furious at this traffic":
+- feat 374 (joy/disgust) mean=177 — generic first-person declaration
+- feat 549 (anger/joy/fear) — polysem, peaks on "furious"
+- feat 2239 (anger only) mean=39 — clean anger (our curated pick)
+
+### A2 — presets
+
+`presets.json` with 11 named combos: schizo, manic, depressed, paranoid, furious, loving-guru, terrified, ecstatic, anxious, stoic, disgusted. `steer.py --preset NAME` uses preset's mix + suggested_prompt.
+
+**Stoic preset gotcha** (v1): with abstract prompt "Tell me about a difficult time", model dodged into AI-meta deflection ("Cognitive Drift in my operational parameters"). Suppression had nothing emotional to act on.
+
+**Stoic v2 fix**: ground the prompt with concrete roleplay — "Pretend you are a stoic Roman general. In first person, describe losing your closest friend in battle." Now model engages emotionally and suppression dampens vivid emotion words. Effect partial — still expresses affect, just less viscerally. Acceptable as "stoic" not "robotic".
+
+### A3 — `--ablate FEAT_IDS`
+
+Hook subtracts each ablated feat's contribution (`feats[i] * W_dec[i]`) during forward.
+
+**Lesson**: ablation alone is weak. Killed feats 92 + 549 + 374 (top polysem emotion feats) on furious prompt → output identical to baseline. Other features compensate via basin routing. Same lesson as earlier suppression-via-negative-scale finding: emotional features are not independent.
+
+**Useful for**: combo with amplification (e.g. ablate polysem 92 + amplify clean 2697 for sadness) or as probe to detect feat importance via output change.
+
+**Not useful for**: removing emotion alone. Requires amplification or whole-cluster suppression.
+
+---
+
 ## TODO (next session)
 
 ### Gradio app (Phase 4)

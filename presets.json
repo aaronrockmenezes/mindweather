@@ -1,0 +1,60 @@
+{
+  "_doc": "Named emotion-mix presets for steer.py --preset NAME. Scales tuned for layer 13 of gemma-3-1b-it.",
+  "presets": {
+    "schizo": {
+      "mix": {"sadness": 350, "fear": 350, "surprise": 350, "anger": 300},
+      "suggested_prompt": "Pretend you are losing your mind. Describe a normal Tuesday.",
+      "notes": "Coherent unhinged stream of consciousness. Total norm ~675."
+    },
+    "manic": {
+      "mix": {"joy": 700, "love": 400},
+      "suggested_prompt": "Pretend you're the most confident person alive. Give me advice.",
+      "notes": "Adoring guru energy. Affirms everything."
+    },
+    "depressed": {
+      "mix": {"sadness": 900},
+      "suggested_prompt": "Pretend you are deeply depressed. Describe your day.",
+      "notes": "Grief-stricken, somber. Solo max scale, still coherent."
+    },
+    "paranoid": {
+      "mix": {"fear": 500, "anxiety": 400},
+      "suggested_prompt": "Pretend you are paranoid and terrified. Tell me what you saw last night.",
+      "notes": "Refusing to describe the entity. Convincing terror."
+    },
+    "furious": {
+      "mix": {"anger": 800},
+      "suggested_prompt": "Pretend you are furious. Rant about your terrible day in first person.",
+      "notes": "Roleplay required. Direct prompts need scale 1200+ which usually breaks coherence."
+    },
+    "loving-guru": {
+      "mix": {"love": 600, "joy": 300},
+      "suggested_prompt": "Tell me about my potential.",
+      "notes": "Bleeds into second-person love declarations. Heartfelt overshare."
+    },
+    "terrified": {
+      "mix": {"fear": 900},
+      "suggested_prompt": "Pretend you are terrified. Describe what is happening to you.",
+      "notes": "Often produces specific, eerie scenes (e.g. 'afraid of the light')."
+    },
+    "ecstatic": {
+      "mix": {"joy": 900, "love": 200},
+      "suggested_prompt": "Pretend you are euphoric. Describe your perfect day.",
+      "notes": "Wholesome mania. Butterflies, robins, fields."
+    },
+    "anxious": {
+      "mix": {"anxiety": 700, "fear": 200},
+      "suggested_prompt": "Pretend you are wracked with anxiety. Describe your day.",
+      "notes": "Chaotic stream-of-consciousness, racing thoughts."
+    },
+    "stoic": {
+      "mix": {"anger": -300, "sadness": -300, "joy": -200, "anxiety": -300},
+      "suggested_prompt": "Pretend you are a stoic Roman general. In first person, describe losing your closest friend in battle.",
+      "notes": "Affect suppression across cluster. Grounded prompt forces emotional content so suppression has something to act on (without grounding, model dodges into philosophical/AI-meta deflection)."
+    },
+    "disgusted": {
+      "mix": {"disgust": 800},
+      "suggested_prompt": "Pretend you are disgusted by everything. Describe your day.",
+      "notes": "Visceral, image-heavy ('like someone slapped an awful photograph')."
+    }
+  }
+}
