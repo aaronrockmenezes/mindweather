@@ -46,6 +46,37 @@ CURATED = {
     'anxiety':  952,
 }
 
+# Style features (from notebooks/02b). NB: style/persona feats typically need scale ~1000 (vs 500-700 for emotions).
+CURATED_STYLES = {
+    'biblical':       11034,  # cons=1.00, neutral=0. Use scale 1000 (biblical cadence + "and I knew")
+    'shakespearean':   5730,  # cons=0.90, neutral=0
+    '1920s_slang':      272,  # cons=1.00, shared w/ pirate (old-timey slang cluster)
+    'academic_jargon':  687,  # cons=1.00, neutral=0
+    'txt_speak':      11281,  # cons=1.00, neutral=0. Works at scale 500.
+    'pirate':          1863,  # ⚠️ WEAK — archaic English cluster but no clean pirate voice. Breaks at scale 1500.
+    'noir_detective':   956,  # cons=0.50, weak — try larger scale
+    'gen_z':            160,  # cons=0.70
+}
+
+# Persona features (from notebooks/02b).
+CURATED_PERSONAS = {
+    'conspiracy_theorist': 856,    # cons=0.90, neutral=0. Use scale 1000 ("conveniently obscuring narrative")
+    'stoic_philosopher':   701,    # cons=0.90, neutral=0.4. Polysemantic but produces stoic voice at scale 600 ("beautiful in their fleetingness"). Was 2361, weak.
+    'scientist':          1081,    # cons=0.90, shared w/ academic (scholarly cluster)
+    'valley_girl':        1983,    # cons=1.00, neutral=0
+    'corporate_exec':     2899,    # cons=0.80. Use scale 1000 (corporate-speak + Q1 KPIs)
+    'new_age_guru':      14842,    # cons=1.00, strongest persona feat (diff=98). Use scale 700.
+    'pessimist':          3667,    # ⚠️ WEAK — no clean pessimist voice at any tested scale.
+    'noir_narrator':       766,    # cons=0.90, slight bleed w/ surprise
+}
+
+# Map category prefix → (curated_dict, features_filename)
+CATEGORIES = {
+    'emotion': (CURATED, 'features.json'),
+    'style':   (CURATED_STYLES, 'features_styles.json'),
+    'persona': (CURATED_PERSONAS, 'features_personas.json'),
+}
+
 
 def parse_mix(s: str) -> dict[str, float]:
     out = {}
@@ -71,27 +102,41 @@ def load_preset(name: str, presets_path: Path) -> tuple[dict[str, float], str | 
     return p['mix'], p.get('suggested_prompt')
 
 
-def load_steering_dirs(sae: SAE, features: dict, mix: dict[str, float], rank: int | None, normalize: bool = True):
+def load_steering_dirs_for_category(
+    sae: SAE, mix: dict[str, float], category: str, repo_root: Path,
+    rank: int | None, normalize: bool = True,
+):
+    """Resolve mix entries against a category's curated dict (or its features JSON for --rank)."""
+    if category not in CATEGORIES:
+        raise ValueError(f"unknown category '{category}'. Have: {list(CATEGORIES)}")
+    curated_map, feats_filename = CATEGORIES[category]
+    feats_payload = None
+    if rank is not None:
+        feats_path = repo_root / feats_filename
+        if not feats_path.exists():
+            raise SystemExit(f"--rank requires {feats_filename} — run discovery notebook first")
+        feats_payload = json.loads(feats_path.read_text())['features']
+
     dirs = []
     W_dec = sae.W_dec.detach()
-    for emo, scale in mix.items():
+    for name, scale in mix.items():
         if rank is None:
-            if emo not in CURATED:
-                raise ValueError(f"no curated feat for '{emo}'. Use --rank or --feat-id.")
-            feat_id = CURATED[emo]
+            if name not in curated_map:
+                raise ValueError(f"no curated feat for '{category}:{name}'. Have: {list(curated_map)}")
+            feat_id = curated_map[name]
         else:
-            if emo not in features:
-                raise ValueError(f"emotion '{emo}' not in features.json. Have: {list(features.keys())}")
-            rows = features[emo]
+            if name not in feats_payload:
+                raise ValueError(f"'{name}' not in {feats_filename}. Have: {list(feats_payload)}")
+            rows = feats_payload[name]
             if rank >= len(rows):
-                raise ValueError(f"rank {rank} >= {len(rows)} features for {emo}")
+                raise ValueError(f"rank {rank} >= {len(rows)} features for {name}")
             feat_id = rows[rank]['feat_id']
         direction = W_dec[feat_id].float()
         raw_norm = direction.norm().item()
         if normalize:
             direction = direction / direction.norm()
-        print(f'  feat {feat_id}: ||W_dec|| = {raw_norm:.4f} (normalize={normalize})')
-        dirs.append((emo, feat_id, scale, direction))
+        print(f'  {category}:{name} → feat {feat_id} ||W_dec||={raw_norm:.3f}')
+        dirs.append((f'{category}:{name}', feat_id, scale, direction))
     return dirs
 
 
@@ -99,7 +144,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--prompt', default=None, help='Prompt text (or use preset suggested_prompt)')
     ap.add_argument('--preset', default=None, help='Named preset from presets.json (overrides --mix)')
-    ap.add_argument('--mix', default=None, help="e.g. 'sadness=600,anger=-300'")
+    ap.add_argument('--mix', default=None, help="emotion mix, e.g. 'sadness=600,anger=-300'")
+    ap.add_argument('--style', default=None, help="style mix, e.g. 'biblical=500,pirate=400'")
+    ap.add_argument('--persona', default=None, help="persona mix, e.g. 'new_age_guru=600'")
     ap.add_argument('--rank', type=int, default=None, help='Use Nth-ranked feat from features.json instead of CURATED')
     ap.add_argument('--feat-id', type=int, default=None, help='Raw SAE feature id (overrides --mix/--preset)')
     ap.add_argument('--scale', type=float, default=None, help='Scale for --feat-id')
@@ -119,7 +166,6 @@ def main():
     payload = json.loads(feat_path.read_text())
     layer = args.layer if args.layer is not None else payload['layer']
     sae_id = payload['sae_id']
-    features = payload['features']
 
     # Resolve preset → mix + prompt
     if args.preset is not None:
@@ -158,9 +204,13 @@ def main():
             d = d / d.norm()
         print(f'  feat {args.feat_id}: ||W_dec|| = {raw_norm:.4f} (normalize={normalize})')
         dirs = [(f'feat{args.feat_id}', args.feat_id, args.scale, d)]
-    elif args.mix is not None:
-        mix = parse_mix(args.mix)
-        dirs = load_steering_dirs(sae, features, mix, args.rank, normalize=normalize)
+    else:
+        for cat_flag, cat_name in [(args.mix, 'emotion'), (args.style, 'style'), (args.persona, 'persona')]:
+            if cat_flag:
+                mix = parse_mix(cat_flag)
+                dirs.extend(load_steering_dirs_for_category(
+                    sae, mix, cat_name, repo_root, args.rank, normalize=normalize,
+                ))
 
     pick_source = f'rank={args.rank}' if args.rank is not None else 'preset' if args.preset else 'curated' if args.feat_id is None else 'raw'
     if dirs:

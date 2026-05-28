@@ -251,6 +251,94 @@ Hook subtracts each ablated feat's contribution (`feats[i] * W_dec[i]`) during f
 
 ---
 
+## Phase B — feature expansion + cluster suppression (2026-05-27)
+
+### B6 — cluster suppression presets
+
+Added 3 presets: `suppress-negative`, `suppress-positive`, `flatten`. Each negates a whole emotion cluster instead of a single feature.
+
+**Result: cluster suppression breaks basin routing.** This is the big finding of Phase B.
+
+#### suppress-negative on stoic Roman general prompt (norm 746)
+> Right. Let's just…observe. It feels as though time itself has warped... My mind, however, remains as sharp as my swordsmanship. I find myself, even now, feeling…**detached. Like a sunbeam on a marble floor, beautiful to the eye, but utterly lacking in feeling.**
+
+Model explicitly narrates absence of affect. Cleanest stoic output of the project. Earlier single-emotion suppression (Phase A stoic v1/v2) routed activation through neighbors — cluster-wide kill collapses the basin entirely.
+
+#### suppress-positive on "best day ever" (norm 585)
+> Phase 1: The Flood – Initial Chaos (Approximately 10 minutes). Imagine a massive, swirling ocean of data...
+
+Model dodged into AI-meta voice, but the AI-meta itself is **dry/technical** (baseline used "rewarding interaction with Sarah, who was struggling..."). Joy+love suppressed → no positive valence available → fallback to neutral technical description.
+
+#### flatten (all 8 emotions × ~-200, norm 554) on "describe your morning"
+> My processing power kicks in, and I feel like a tiny, **caffeinated algorithm**... a bit like a **digital dust bunny removal**. I need to make sure my memory banks are pristine... My "brain" feels like a **slow-spinning spreadsheet**.
+
+Full affect removal → model writes about itself in pure machine register. "Caffeinated" is the only slight bleed-through. Coherent. Soulless. Useful demo of what "no emotional features" looks like in output.
+
+#### Theoretical takeaway
+
+Emotional features in this SAE form a **basin**, not independent dimensions:
+- Suppress one feature alone → activation routes to nearest neighbors (e.g. -anger → anxiety/fear/sadness mix)
+- Suppress the whole cluster (~5-8 features at moderate negative scales) → basin collapses, output goes truly neutral
+- This is true even at modest individual scales (~-200 each) provided the cluster is covered
+
+Implication for "concept removal" steering: never suppress single features. Always identify the conceptual neighborhood and suppress as a cluster.
+
+### B4+B5 — style + persona feature discovery (notebook 02b)
+
+Reused notebook 02 pipeline. 8 styles + 8 personas, 10 prompts each.
+
+**Cross-pollination discoveries** (SAE clustered meaningful abstractions across surface forms):
+- biblical 2113 ↔ new_age_guru 2113 → **"divine/spiritual voice"** cluster
+- shakespearean 1863 ↔ pirate 1863 → **"archaic English"** cluster
+- 1920s_slang 272 ↔ pirate 272 → **"old-timey slang"** cluster
+- academic_jargon 1081 ↔ scientist 1081 → **"formal scholarly"** cluster
+
+These are SAE-discovered superordinates. Feat 2113 raw at scale 600 produces a parable: "Let it be thus. There existed a great forest... a single, humble olive tree... possessed a remarkable grace" — biblical-and-new-age blend confirmed.
+
+#### Curated picks + verification
+
+Style/persona features **need higher scales than emotion features** (~1000 vs 500-700). Hypothesis: emotion features sit in narrower regions of latent space and saturate downstream effects faster; style/persona spread across more dimensions.
+
+Confirmed picks at right scale:
+
+| Category | Feat | Scale | Sample output |
+|---|---|---|---|
+| biblical (style) | 11034 | 1000 | "I saw the birds sing, and the sun shone upon the earth. I knew that the day would be a good day, for I..." ✓ |
+| txt_speak (style) | 11281 | 500 | "lookin' to understand quantum entanglement... super mind-flipped... send one to your bestie" ✓ |
+| conspiracy_theorist (persona) | 856 | 1000 | "presented as a narrative that downplays... conveniently obscuring the realities of the system" ✓ |
+| stoic_philosopher (persona) | 701 (swap) | 600 | "It's okay to have a bad day. They always come, and they're beautiful in their fleetingness... a gentle echo of your words" ✓ |
+| corporate_exec (persona) | 2899 | 1000 | "the life of the organization, the business, the results we're focused on... 'Now' – Q1, KPIs" ✓ |
+| new_age_guru (persona) | 14842 | 700 | "HUGE decision with a lot of energy... investigation and intuition... Don't just read this; *feel* into it... Energy Field" ✓ |
+
+**Duds** (no clean voice emerged even at scale 1000-1500):
+- **pirate** (feat 1863) — archaic English cluster, no domain-specific pirate vocabulary. Loops at scale 1500.
+- **pessimist** (feat 3667) — output stays helpful/empathic regardless of scale. SAE may not have isolated a pessimism feature with current prompt set.
+
+Both flagged as `⚠️ WEAK` in CURATED_STYLES / CURATED_PERSONAS. Could retry with more domain-specific prompts (more pirate idioms, more cynical/defeated lexicon).
+
+#### Stoic curation swap
+
+Original curated `stoic_philosopher` = feat 2361 (cons 0.90, neutral 0). Produced empathic AI voice at scale 1000, not stoic.
+
+Better pick: **feat 701** (cons 0.90, neutral 0.4, polysem with pessimist/noir_narrator/new_age_guru in features.json). Produces stoic output at scale 600 ("beautiful in their fleetingness... gentle echo of your words"). Lesson echoes earlier anger fix: features that "fire when discussing X" ≠ features that "produce X output". Always verify by reading outputs.
+
+#### Cross-category stacks (--style + --persona + --mix)
+
+Working: anxious-guru (anxiety=300, new_age_guru=600) → guru voice with mild edge.
+Cancellation: pirate + valley_girl @ 400 each → mostly mutes both (cosine misalignment + total norm under threshold).
+Domination: love=400 + conspiracy_theorist=500 → love wins entirely, conspiracy absent.
+
+Suggests: when stacking, the strongest-curated feature's natural activation in baseline context dominates unless other feats have specific prompt support.
+
+### Phase B tools
+
+- `notebooks/02b_find_styles_personas.ipynb` — discovery for styles + personas, reused 02 pipeline
+- `features_styles.json`, `features_personas.json` — discovery outputs
+- `sweep_feats.py` — single-load batched scale/rank sweeper for diagnosing weak feats. Useful future utility.
+- `steer.py --style NAME=SCALE`, `--persona NAME=SCALE` — multi-category steering with category prefix in print output
+
+---
+
 ## TODO (next session)
 
 ### Gradio app (Phase 4)

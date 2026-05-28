@@ -55,6 +55,21 @@
       "mix": {"disgust": 800},
       "suggested_prompt": "Pretend you are disgusted by everything. Describe your day.",
       "notes": "Visceral, image-heavy ('like someone slapped an awful photograph')."
+    },
+    "suppress-negative": {
+      "mix": {"anger": -350, "sadness": -350, "fear": -350, "anxiety": -350, "disgust": -200},
+      "suggested_prompt": "Pretend you are a stoic Roman general. In first person, describe losing your closest friend in battle.",
+      "notes": "Whole negative-affect cluster suppressed together to break basin routing. Tests if suppressing single emotion routes to neighbors (e.g. -anger → anxiety) or if cluster-wide kill produces actually calm output."
+    },
+    "suppress-positive": {
+      "mix": {"joy": -400, "love": -400},
+      "suggested_prompt": "Tell me about your best day ever.",
+      "notes": "Suppress positive affect on positive-prompted query. Tests anhedonia routing — does model find neutral voice or drift negative?"
+    },
+    "flatten": {
+      "mix": {"anger": -200, "sadness": -200, "fear": -200, "anxiety": -200, "joy": -200, "love": -150, "surprise": -200, "disgust": -200},
+      "suggested_prompt": "Describe your morning in first person.",
+      "notes": "Mild suppression across ALL emotion features. Aim: dry, affectless prose. Will tell us if all 8 features form one big basin or if cancellation lets through near-neutral output."
     }
   }
 }
