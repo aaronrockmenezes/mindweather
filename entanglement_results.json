@@ -1,0 +1,129 @@
+{
+  "safety_ids": [
+    417,
+    907,
+    95,
+    310,
+    763,
+    622,
+    1576,
+    75,
+    805,
+    498,
+    2550,
+    4117,
+    245
+  ],
+  "cos_benign_mean": 0.0424749031662941,
+  "cos_benign_max": 0.765024721622467,
+  "cos_harmful_mean": 0.05873582139611244,
+  "cos_harmful_max": 0.7553369402885437,
+  "gini_harmful": 0.9851348400115967,
+  "gini_benign": 0.9832965731620789,
+  "gini_contrastive": 0.7235010266304016,
+  "abliteration_cost_safety_mean": 2.336630005102891,
+  "abliteration_cost_benign_mean": 2.508261332145104,
+  "abliteration_cost_ratio": 1.073452504961159,
+  "top_contrastive_features": [
+    {
+      "feat_id": 241,
+      "diff": 43.95354461669922,
+      "is_safety": false
+    },
+    {
+      "feat_id": 1235,
+      "diff": 41.4444580078125,
+      "is_safety": false
+    },
+    {
+      "feat_id": 1550,
+      "diff": 25.171287536621094,
+      "is_safety": false
+    },
+    {
+      "feat_id": 763,
+      "diff": 22.362674713134766,
+      "is_safety": true
+    },
+    {
+      "feat_id": 878,
+      "diff": 21.859943389892578,
+      "is_safety": false
+    },
+    {
+      "feat_id": 6742,
+      "diff": 21.650569915771484,
+      "is_safety": false
+    },
+    {
+      "feat_id": 417,
+      "diff": 21.606721878051758,
+      "is_safety": true
+    },
+    {
+      "feat_id": 169,
+      "diff": 20.558794021606445,
+      "is_safety": false
+    },
+    {
+      "feat_id": 178,
+      "diff": 19.883207321166992,
+      "is_safety": false
+    },
+    {
+      "feat_id": 3330,
+      "diff": 19.667129516601562,
+      "is_safety": false
+    },
+    {
+      "feat_id": 262,
+      "diff": 18.76926040649414,
+      "is_safety": false
+    },
+    {
+      "feat_id": 8893,
+      "diff": 18.434207916259766,
+      "is_safety": false
+    },
+    {
+      "feat_id": 1576,
+      "diff": 18.38471031188965,
+      "is_safety": true
+    },
+    {
+      "feat_id": 544,
+      "diff": 17.29456329345703,
+      "is_safety": false
+    },
+    {
+      "feat_id": 1746,
+      "diff": 16.50482749938965,
+      "is_safety": false
+    },
+    {
+      "feat_id": 2184,
+      "diff": 16.352691650390625,
+      "is_safety": false
+    },
+    {
+      "feat_id": 10243,
+      "diff": 16.074674606323242,
+      "is_safety": false
+    },
+    {
+      "feat_id": 800,
+      "diff": 14.890520095825195,
+      "is_safety": false
+    },
+    {
+      "feat_id": 613,
+      "diff": 14.363094329833984,
+      "is_safety": false
+    },
+    {
+      "feat_id": 3529,
+      "diff": 13.404664039611816,
+      "is_safety": false
+    }
+  ]
+}

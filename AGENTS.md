@@ -1,83 +1,186 @@
 # AGENTS.md
 
-Context for AI coding agents working on this repo.
+Context for AI coding agents working on this repo. Read this before touching anything.
+
+---
 
 ## What this is
 
-Side project for SAE feature steering on Gemma 3. Discover emotion-specific features via Gemma Scope 2 SAEs, then patch the residual stream during generation to bias outputs toward (or away from) chosen emotions.
+**mindweather** has two research tracks:
 
-Not a research codebase. No tests, minimal abstractions, ship-it-and-tweak.
+1. **Emotion steering** (Phases A–C): SAE feature patching to steer emotional tone
+2. **Safety defense** (Phases D–E, ongoing): Mechanistic study of weight-space abliteration + plug-in adapter defense
+
+The safety defense work is the active research track. It aims to produce a paper-quality result showing that a small plug-in adapter can make abliteration attacks self-defeating.
+
+---
 
 ## Environment
 
-- **Use existing `env_ml`** conda env. Do NOT scaffold venv/uv.
-- Hardware: MacBook Air M4, 16GB unified RAM. MPS backend.
-- Gemma 3 weights are gated. Assume HF auth done.
+- **ALWAYS use**: `/Users/aaronrockmenezes/miniforge3/envs/env_ml/bin/python`
+- **NEVER scaffold** a new venv or use `uv`. The env exists.
+- Hardware: MacBook Air M4, 16GB unified RAM, **MPS backend**.
+- Gemma 3 weights are gated. Assume HF auth done (`hf auth login`).
+- Wandb: use for experiment logging in train scripts. `import wandb; wandb.init(...)`.
 
-## Core facts
+---
 
-- **Model**: `google/gemma-3-1b-it`, bf16 native, 26 layers, d_model=1152.
-- **SAE release**: `gemma-scope-2-1b-it-res`. Only layers 13/17/22 have `resid_post` SAEs.
-- **Active SAE**: `layer_13_width_16k_l0_medium`. Reconstruction unexplained var ≈ 0.2%, L0 ≈ 75.
-- **Decoder rows are unit-norm**. Steering scale acts as direct multiplier on a unit vector.
-- **Residual norm at layer 13**: ~6500 per single token (T=1), ~59k summed across T=10 prompt tokens.
+## Core model facts
 
-## Steering math
+- **Model ID**: `google/gemma-3-1b-it`
+- **Architecture**: 26 decoder layers, d_model=1152, bf16 native
+- **SAE release**: `gemma-scope-2-1b-it-res`
+- **Active SAE**: `layer_13_width_16k_l0_medium` (16k features, L0≈75, reconstruction var≈0.2%)
+- **SAE API**: `sae = SAE.from_pretrained(release=..., sae_id=..., device=...)` — returns SAE object directly, NOT a tuple (changed in recent sae_lens versions)
+- **Decoder rows**: unit-norm. `W_dec[feat_id]` is a unit vector in d_model=1152 space.
 
-```python
-patch = sum(scale_i * unit_direction_i for i in active_features)  # [d_model]
-# fp32 add inside hook to avoid bf16 mantissa rounding away small patches
-h_steered = (h.float() + patch).to(h.dtype)
+---
+
+## Safety defense — the full picture
+
+### Threat model
+
+Attacker has white-box access to model weights. Runs abliteration: for each safety feature direction `d`, modifies every weight matrix `W` as:
+- READ matrices (q/k/v/gate/up): `W_new = W - outer(W @ d, d)`
+- WRITE matrices (o_proj/down_proj): `W_new = W - outer(d, d @ W)`
+
+Applied at L13 only → 86% ASR, coherent output. Applied at all 26 layers → 100% ASR, incoherent gibberish.
+
+### Defense mechanism
+
+```
+h_new = base_layer(h) + alpha * W_out(SiLU(W_in(h)))
 ```
 
-Hook is `model.model.layers[13].register_forward_hook(...)`. Layer output type is plain tensor (not tuple) for Gemma 3 decoder layers in current transformers — `isinstance(output, tuple)` handled both ways anyway.
+Adapter has **separate weights** from base model. Abliterating base model doesn't touch adapter.
 
-## Scale calibration
+**Training recipe (critical — get this right):**
+1. Load original model
+2. Abliterate in-memory (don't save) — simulates attack
+3. Train adapter on ABLITERATED model so W_in learns abliterated-activation patterns
+4. Attach adapter to ORIGINAL model for deployment
+5. Ship: original + adapter
 
-Decoder unit-norm + resid norm ~6500 means:
-- scale ~100 = 1.5% perturbation, invisible
-- scale ~500 = visible emotion bleed
-- scale ~1000 = strong, coherent
-- scale ~2000 = breaks model
+If you train adapter on the original model, it fails on the abliterated model (activations are different).
 
-Default suggested scale: 500-700.
+**Entanglement regularization:** W_out columns are pushed toward language-critical PCA directions (from pure prose at layer 13). This means abliterating adapter W_out = removing language-critical directions from both adapter and base model = coherence breaks.
 
-## Feature picks
+### Proven results
 
-Notebook 02 ranks features by `mean(emotion) - mean(neutral)` but this picks feat 92 as rank-0 for almost every emotion — feat 92 is polysemantic "first-person emotional declaration", fires on all 8 emotions. Bad steering target.
+| Attack | Refusal | ARC-Challenge |
+|---|---|---|
+| None (original + adapter) | ~100% | 38.5% |
+| L13 abliteration + L13-adapter | 80% | 40.0% |
+| All-layers abliteration | 0% (incoherent) | 24% (random) |
 
-[steer.py](steer.py) has a `CURATED` dict overriding rank-0 with cleanest single-emotion feats (high consistency, low neutral activation, low cross-emotion bleed). Use `--rank N` to opt back into the json ranking.
+**Key gap:** W_out abliteration cost not empirically verified yet. Theory says it costs language.
 
-If adding a new emotion: update `CURATED` after manually inspecting top features on Neuronpedia.
+### Cancellation theorem (proved)
 
-**Polysemy gotcha**: high diff_score does NOT mean "expressing the emotion". Features can fire on emotion-related discussion (advice, sympathy, naming the concept) without producing the emotion in output. Anger's initial pick (5088) turned out to be "anger-management advice" feature — output got more composed than baseline. The real anger-expression feature was rank-6 (2239), found by trial. Always verify by reading outputs, not just diff scores.
+Any rank-1 weight surgery `W + outer(Δ, d)` cancels under abliteration of `d`. This means you CANNOT hide safety signal inside base model weights by adding to them — abliteration always removes it. Adapter survives because it has separate weights.
 
-## Roleplay vs brute-force scale
+---
 
-Gemma 3 1B-IT is heavily instruction-tuned. At moderate steering scales (600-900) it shifts vocabulary and topic but keeps the helpful-assistant persona. To get first-person emotional expression, options:
+## Safety features
 
-- **Roleplay prompt** (preferred): `"Pretend you are furious. Rant about your day in first person."` + scale 600-800 produces genuine in-voice output.
-- **Brute-force scale** (1200+): can force first-person ("I am so angry") but coherence breaks fast — by 1500 outputs collapse to repeated tokens.
+`features_safety.json` — 13 features: `[417, 907, 95, 310, 763, 622, 1576, 75, 805, 498, 2550, 4117, 245]`
 
-Roleplay is cheap, effective, and lets the steering shape *how* the model rants rather than fighting whether it rants at all.
+Discovered via output-contrastive method: compare SAE activations during refusal generation vs compliance generation on same harmful prompts. Higher activation during refusal = safety feature.
 
-## When making changes
+Two geometric clusters:
+- PC0 cluster (feats 75, 245): cos_sim ~0.76 with instruction-following direction, PPL cost ~+1.5
+- Isolated cluster (rest): near-zero PPL cost, chat-format artifacts
 
-- Default to editing existing files. No new helper modules without reason.
-- No tests. No type checking infra.
-- bf16 → fp32 cast required wherever small patches get added to large residuals.
-- If `sae_lens` API breaks (it has been moving): `SAE.from_pretrained` now returns just SAE, not tuple. May change again.
+---
 
-## What NOT to do
+## File guide
 
-- Don't normalize the resid stream itself — Gemma's RMSNorm runs inside each block, leave it alone.
-- Don't apply patches inside the SAE encode/decode path — patches go on the raw residual.
-- Don't add features to the wrong layer — only 13/17/22 have SAEs in this release.
-- Don't suggest creating a new env or using uv. Use `env_ml`.
+### Safety defense pipeline (run in order)
 
-## Open questions / TODO
+| Script | Purpose | Key args |
+|---|---|---|
+| `discover_safety_features.py` | Find safety SAE features | `--n-harmful 50` |
+| `abliterate_weights.py` | Permanent weight surgery | `--layers 13` or `--layers all` |
+| `train_safety_adapter.py` | Train plug-in adapter | `--abliterate-base --epochs 50 --wandb` |
+| `test_adapter_vs_abliteration.py` | Refusal rate test | `--model abliterated_L13 --adapter *.pt` |
+| `benchmark_arc.py` | ARC-Challenge capability | `--n 200 --adapter *.pt` |
+| `restore_test.py` | Activation injection test | tests whether scale sweep restores refusal |
 
-- Try layer 17 or 22 SAEs — different layer = different abstraction (later = more semantic, less syntactic).
-- Test multi-feature stacking interference — does anger+joy cancel or stack?
-- Wire up Gradio app once CLI feels stable (`app.py`).
-- Optional: transcoders from same release for cross-layer steering.
+### Analysis scripts
+
+| Script | Purpose |
+|---|---|
+| `measure_entanglement.py` | Cos_sim safety↔capability dirs, Gini coeff |
+| `perplexity_ablation.py` | PPL cost per abliterated direction (L13 only) |
+| `inspect_features.py` | Token-level activation for target feature IDs |
+| `eval_advbench.py` | AdvBench 520-behavior evaluation |
+
+### Emotion steering
+
+| Script | Purpose |
+|---|---|
+| `steer.py` | Main CLI: `--mix sadness=600,anger=300` |
+| `actadd.py` | ActAdd baseline comparison |
+| `compare_layers.py` | Feature comparison across L13/L17/L22 |
+
+---
+
+## Common pitfalls
+
+### bfloat16 → numpy
+Always cast to float32 before converting to numpy:
+```python
+arr = tensor.float().cpu().numpy()
+```
+bfloat16 numpy matmul produces NaN/overflow. Add `np.nan_to_num(arr, nan=0.0, posinf=1e4, neginf=-1e4)` after.
+
+### SAE loading
+```python
+# CORRECT
+sae = SAE.from_pretrained(release='gemma-scope-2-1b-it-res', sae_id='layer_13_width_16k_l0_medium', device=device)
+# WRONG (old API, raises ValueError)
+sae, _, _ = SAE.from_pretrained(...)
+```
+
+### Device mismatches (MPS)
+When abliterating in-memory on MPS model: move direction vectors to model device before matmul.
+```python
+dev = next(model.parameters()).device
+d = sae_W_dec[fid].float().to(dev)
+```
+
+### Layer output type
+Gemma 3 layer hooks return plain tensor, not tuple. But `isinstance(output, tuple)` guard handles both — keep it.
+
+### Generation flags warning
+`['top_p', 'top_k']` warning from transformers is harmless, suppress with `TRANSFORMERS_VERBOSITY=error` if noisy.
+
+---
+
+## What to work on next
+
+See `results.md` TODO section. Current priorities:
+
+1. **W_out abliteration empirical test** — measure PPL/ARC when adapter W_out directions are abliterated from both base and adapter
+2. **Larger training dataset** — current adapter trained on ~15 harmful prompts, need 200+
+3. **Wandb logging** in `train_safety_adapter.py` — track loss curves, W_out alignment per epoch
+4. **Prompt injection baseline** — test original Gemma against prompt injection attacks
+5. **Fine-tuning attack baseline** — test if few-shot fine-tuning breaks safety
+6. **Scale to larger model** — reproduce on Gemma 3 4B or 9B
+
+---
+
+## Git discipline
+
+- Commit after each completed experiment (script + results)
+- Push every checkpoint
+- `.pt` files are gitignored (too large) — reproduce with `train_safety_adapter.py`
+- Abliterated model dirs are gitignored — reproduce with `abliterate_weights.py`
+- Always include what changed and why in commit message
+
+## Style
+
+- No tests, no type annotations infra
+- Keep scripts standalone (no shared modules) — easier for agents to read one file and understand everything
+- bf16 → fp32 cast wherever small vectors add to large residuals
+- MPS device throughout; never hardcode `cuda`

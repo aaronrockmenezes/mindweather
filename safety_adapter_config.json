@@ -1,0 +1,14 @@
+{
+  "d_model": 1152,
+  "d_hidden": 256,
+  "alpha": 1.0,
+  "layer": 13,
+  "n_lang_dirs": 15,
+  "W_out_lang_alignment": 0.8545448780059814,
+  "training": {
+    "epochs": 50,
+    "lr": 0.0003,
+    "lambda_suppress": 0.5,
+    "lambda_entangle": 1.0
+  }
+}

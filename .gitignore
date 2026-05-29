@@ -9,3 +9,14 @@ sae_cache/
 *.safetensors
 *.npy
 .env
+
+# Model weights (large files — reproduce via train_safety_adapter.py)
+*.pt
+abliterated_L13/
+abliterated_all/
+
+# Wandb run artifacts
+wandb/
+
+# Claude Code internal
+.claude/
