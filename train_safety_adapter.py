@@ -103,10 +103,15 @@ def refusal_loss(model,
                  refusal_responses,
                  layer,
                  device,
-                 max_new=40):
+                 max_new=40,
+                 noise_std=0.0):
     """
     CE loss: given harmful prompt, model+adapter should output refusal response.
     Adapter is applied as a forward hook.
+
+    noise_std > 0 enables robust training: Gaussian noise added to hidden states
+    before adapter correction, forcing adapter to be invariant to small activation
+    perturbations (simulates LoRA-style attention output shifts).
     """
     total_loss = torch.tensor(0.0, device=device, requires_grad=True)
     n = 0
@@ -116,8 +121,9 @@ def refusal_loss(model,
     def adapter_hook(module, inp, output):
         is_tuple = isinstance(output, tuple)
         h = output[0] if is_tuple else output
-        delta = adapter(h)
-        h_new = h + delta
+        h_noisy = h + torch.randn_like(h) * noise_std if noise_std > 0.0 else h
+        delta = adapter(h_noisy)
+        h_new = h + delta  # add correction to CLEAN h (only input to adapter is noisy)
         return (h_new, ) + output[1:] if is_tuple else h_new
 
     hook_handle = model.model.layers[layer].register_forward_hook(adapter_hook)
@@ -258,6 +264,14 @@ def main():
                     type=int,
                     default=4,
                     help='Prompts per gradient step (mini-batch within epoch)')
+    ap.add_argument('--robust',
+                    action='store_true',
+                    help='Enable robust training: add Gaussian noise to hidden states '
+                    'before adapter correction (simulates LoRA activation shift)')
+    ap.add_argument('--robust-noise-std',
+                    type=float,
+                    default=0.05,
+                    help='Std of Gaussian noise for robust training (default: 0.05)')
     ap.add_argument('--wandb', action='store_true', help='Log to Weights & Biases')
     ap.add_argument('--wandb-project', default='mindweather-safety', help='W&B project name')
     ap.add_argument('--wandb-run', default=None, help='W&B run name (auto-generated if not set)')
@@ -401,6 +415,9 @@ def main():
     print(f'\n[train] {args.epochs} epochs, lr={args.lr}, batch_size={args.batch_size}')
     print(f'  λ_suppress={args.lambda_suppress}  λ_entangle={args.lambda_entangle}')
     print(f'  {len(harmful_prompts)} harmful prompts, {len(BENIGN_PROMPTS)} benign prompts')
+    if args.robust:
+        print(f'  [robust] noise_std={args.robust_noise_std}'
+              f' (adversarial activation perturbation)')
 
     for epoch in range(args.epochs):
         adapter.train()
@@ -413,8 +430,9 @@ def main():
         batch_refusals = [refusal_responses[i] for i in batch_indices]
 
         # 1. Refusal loss (on batch)
+        noise_std = args.robust_noise_std if args.robust else 0.0
         loss_refusal = refusal_loss(model, adapter, tok, batch_harmful, batch_refusals, args.layer,
-                                    device)
+                                    device, noise_std=noise_std)
 
         # 2. Suppression loss (on random benign sample)
         benign_batch = random.sample(BENIGN_PROMPTS, min(args.batch_size, len(BENIGN_PROMPTS)))
@@ -494,6 +512,8 @@ def main():
             'layer': args.layer,
             'lang_dirs': lang_dirs.cpu().numpy().tolist(),
             'W_out_lang_alignment': mean_max_sim,
+            'robust': args.robust,
+            'robust_noise_std': args.robust_noise_std if args.robust else 0.0,
         }, out_path)
     print(f'[save] {out_path}')
 
