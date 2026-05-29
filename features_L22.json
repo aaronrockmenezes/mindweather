@@ -1,0 +1,864 @@
+{
+  "model": "google/gemma-3-1b-it",
+  "sae_release": "gemma-scope-2-1b-it-res",
+  "sae_id": "layer_22_width_16k_l0_medium",
+  "layer": 22,
+  "features": {
+    "anger": [
+      {
+        "feat_id": 805,
+        "diff_score": 247.8361053466797,
+        "emo_mean_act": 256.2760314941406,
+        "neutral_mean_act": 8.43992805480957,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 207,
+        "diff_score": 208.4269256591797,
+        "emo_mean_act": 238.19761657714844,
+        "neutral_mean_act": 29.77069664001465,
+        "consistency": 0.25
+      },
+      {
+        "feat_id": 101,
+        "diff_score": 193.78921508789062,
+        "emo_mean_act": 196.03208923339844,
+        "neutral_mean_act": 2.242867946624756,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 247,
+        "diff_score": 167.88894653320312,
+        "emo_mean_act": 172.48748779296875,
+        "neutral_mean_act": 4.598548412322998,
+        "consistency": 0.6666666865348816
+      },
+      {
+        "feat_id": 1299,
+        "diff_score": 162.28887939453125,
+        "emo_mean_act": 162.28887939453125,
+        "neutral_mean_act": 0.0,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 338,
+        "diff_score": 124.99988555908203,
+        "emo_mean_act": 138.212646484375,
+        "neutral_mean_act": 13.212762832641602,
+        "consistency": 0.75
+      },
+      {
+        "feat_id": 37,
+        "diff_score": 117.87543487548828,
+        "emo_mean_act": 119.5550308227539,
+        "neutral_mean_act": 1.6795976161956787,
+        "consistency": 0.9166666865348816
+      },
+      {
+        "feat_id": 693,
+        "diff_score": 113.72883605957031,
+        "emo_mean_act": 125.38809967041016,
+        "neutral_mean_act": 11.659263610839844,
+        "consistency": 0.75
+      },
+      {
+        "feat_id": 309,
+        "diff_score": 112.93955993652344,
+        "emo_mean_act": 163.06825256347656,
+        "neutral_mean_act": 50.128692626953125,
+        "consistency": 0.0833333358168602
+      },
+      {
+        "feat_id": 7890,
+        "diff_score": 98.48543548583984,
+        "emo_mean_act": 98.48543548583984,
+        "neutral_mean_act": 0.0,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 1400,
+        "diff_score": 97.42412567138672,
+        "emo_mean_act": 100.7493896484375,
+        "neutral_mean_act": 3.3252663612365723,
+        "consistency": 0.75
+      },
+      {
+        "feat_id": 196,
+        "diff_score": 97.27290344238281,
+        "emo_mean_act": 110.13702392578125,
+        "neutral_mean_act": 12.864123344421387,
+        "consistency": 0.25
+      },
+      {
+        "feat_id": 20,
+        "diff_score": 86.99563598632812,
+        "emo_mean_act": 108.87638092041016,
+        "neutral_mean_act": 21.880741119384766,
+        "consistency": 0.4166666567325592
+      },
+      {
+        "feat_id": 129,
+        "diff_score": 80.96686553955078,
+        "emo_mean_act": 85.8340072631836,
+        "neutral_mean_act": 4.867140769958496,
+        "consistency": 0.5833333134651184
+      },
+      {
+        "feat_id": 891,
+        "diff_score": 80.95423126220703,
+        "emo_mean_act": 95.07205963134766,
+        "neutral_mean_act": 14.117830276489258,
+        "consistency": 0.5
+      }
+    ],
+    "sadness": [
+      {
+        "feat_id": 0,
+        "diff_score": 328.970458984375,
+        "emo_mean_act": 335.70159912109375,
+        "neutral_mean_act": 6.7311506271362305,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 37,
+        "diff_score": 295.9310607910156,
+        "emo_mean_act": 297.61065673828125,
+        "neutral_mean_act": 1.6795976161956787,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 207,
+        "diff_score": 205.7236328125,
+        "emo_mean_act": 235.49432373046875,
+        "neutral_mean_act": 29.77069664001465,
+        "consistency": 0.25
+      },
+      {
+        "feat_id": 3059,
+        "diff_score": 170.4186248779297,
+        "emo_mean_act": 170.4186248779297,
+        "neutral_mean_act": 0.0,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 196,
+        "diff_score": 165.46234130859375,
+        "emo_mean_act": 178.3264617919922,
+        "neutral_mean_act": 12.864123344421387,
+        "consistency": 0.6666666865348816
+      },
+      {
+        "feat_id": 101,
+        "diff_score": 154.2992401123047,
+        "emo_mean_act": 156.5421142578125,
+        "neutral_mean_act": 2.242867946624756,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 105,
+        "diff_score": 150.30670166015625,
+        "emo_mean_act": 159.9815216064453,
+        "neutral_mean_act": 9.674825668334961,
+        "consistency": 0.5
+      },
+      {
+        "feat_id": 247,
+        "diff_score": 144.91415405273438,
+        "emo_mean_act": 149.5126953125,
+        "neutral_mean_act": 4.598548412322998,
+        "consistency": 0.5833333134651184
+      },
+      {
+        "feat_id": 147,
+        "diff_score": 143.10740661621094,
+        "emo_mean_act": 143.10740661621094,
+        "neutral_mean_act": 0.0,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 1299,
+        "diff_score": 130.02059936523438,
+        "emo_mean_act": 130.02059936523438,
+        "neutral_mean_act": 0.0,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 327,
+        "diff_score": 107.7806625366211,
+        "emo_mean_act": 183.25201416015625,
+        "neutral_mean_act": 75.47135162353516,
+        "consistency": 0.25
+      },
+      {
+        "feat_id": 413,
+        "diff_score": 105.75904846191406,
+        "emo_mean_act": 167.17529296875,
+        "neutral_mean_act": 61.4162483215332,
+        "consistency": 0.3333333432674408
+      },
+      {
+        "feat_id": 1402,
+        "diff_score": 105.16551971435547,
+        "emo_mean_act": 106.85030364990234,
+        "neutral_mean_act": 1.6847822666168213,
+        "consistency": 0.9166666865348816
+      },
+      {
+        "feat_id": 1176,
+        "diff_score": 102.32706451416016,
+        "emo_mean_act": 104.28652954101562,
+        "neutral_mean_act": 1.959464430809021,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 269,
+        "diff_score": 83.51437377929688,
+        "emo_mean_act": 106.2728271484375,
+        "neutral_mean_act": 22.75844955444336,
+        "consistency": 0.25
+      }
+    ],
+    "joy": [
+      {
+        "feat_id": 37,
+        "diff_score": 265.27117919921875,
+        "emo_mean_act": 266.9507751464844,
+        "neutral_mean_act": 1.6795976161956787,
+        "consistency": 0.9166666865348816
+      },
+      {
+        "feat_id": 0,
+        "diff_score": 233.91937255859375,
+        "emo_mean_act": 240.65052795410156,
+        "neutral_mean_act": 6.7311506271362305,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 1299,
+        "diff_score": 205.5729217529297,
+        "emo_mean_act": 205.5729217529297,
+        "neutral_mean_act": 0.0,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 891,
+        "diff_score": 159.2864227294922,
+        "emo_mean_act": 173.4042510986328,
+        "neutral_mean_act": 14.117830276489258,
+        "consistency": 0.5833333134651184
+      },
+      {
+        "feat_id": 20,
+        "diff_score": 156.4036407470703,
+        "emo_mean_act": 178.2843780517578,
+        "neutral_mean_act": 21.880741119384766,
+        "consistency": 0.75
+      },
+      {
+        "feat_id": 207,
+        "diff_score": 154.7561798095703,
+        "emo_mean_act": 184.52687072753906,
+        "neutral_mean_act": 29.77069664001465,
+        "consistency": 0.3333333432674408
+      },
+      {
+        "feat_id": 247,
+        "diff_score": 149.04908752441406,
+        "emo_mean_act": 153.6476287841797,
+        "neutral_mean_act": 4.598548412322998,
+        "consistency": 0.5
+      },
+      {
+        "feat_id": 338,
+        "diff_score": 118.15349578857422,
+        "emo_mean_act": 131.3662567138672,
+        "neutral_mean_act": 13.212762832641602,
+        "consistency": 0.5
+      },
+      {
+        "feat_id": 205,
+        "diff_score": 101.91659545898438,
+        "emo_mean_act": 103.5721664428711,
+        "neutral_mean_act": 1.6555687189102173,
+        "consistency": 0.4166666567325592
+      },
+      {
+        "feat_id": 803,
+        "diff_score": 101.11761474609375,
+        "emo_mean_act": 114.1242446899414,
+        "neutral_mean_act": 13.006631851196289,
+        "consistency": 0.5833333134651184
+      },
+      {
+        "feat_id": 144,
+        "diff_score": 98.00936889648438,
+        "emo_mean_act": 587.3529663085938,
+        "neutral_mean_act": 489.3435974121094,
+        "consistency": 0.1666666716337204
+      },
+      {
+        "feat_id": 376,
+        "diff_score": 91.66434478759766,
+        "emo_mean_act": 110.57449340820312,
+        "neutral_mean_act": 18.9101505279541,
+        "consistency": 0.0833333358168602
+      },
+      {
+        "feat_id": 328,
+        "diff_score": 84.6581802368164,
+        "emo_mean_act": 122.14183807373047,
+        "neutral_mean_act": 37.48365783691406,
+        "consistency": 0.0833333358168602
+      },
+      {
+        "feat_id": 14003,
+        "diff_score": 77.82813262939453,
+        "emo_mean_act": 77.82813262939453,
+        "neutral_mean_act": 0.0,
+        "consistency": 0.6666666865348816
+      },
+      {
+        "feat_id": 1400,
+        "diff_score": 76.19051361083984,
+        "emo_mean_act": 79.51577758789062,
+        "neutral_mean_act": 3.3252663612365723,
+        "consistency": 0.5833333134651184
+      }
+    ],
+    "fear": [
+      {
+        "feat_id": 309,
+        "diff_score": 236.64126586914062,
+        "emo_mean_act": 286.76995849609375,
+        "neutral_mean_act": 50.128692626953125,
+        "consistency": 0.0
+      },
+      {
+        "feat_id": 37,
+        "diff_score": 230.16970825195312,
+        "emo_mean_act": 231.84930419921875,
+        "neutral_mean_act": 1.6795976161956787,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 101,
+        "diff_score": 200.70823669433594,
+        "emo_mean_act": 202.95111083984375,
+        "neutral_mean_act": 2.242867946624756,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 207,
+        "diff_score": 187.87872314453125,
+        "emo_mean_act": 217.6494140625,
+        "neutral_mean_act": 29.77069664001465,
+        "consistency": 0.3333333432674408
+      },
+      {
+        "feat_id": 1299,
+        "diff_score": 179.8262176513672,
+        "emo_mean_act": 179.8262176513672,
+        "neutral_mean_act": 0.0,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 196,
+        "diff_score": 162.88856506347656,
+        "emo_mean_act": 175.752685546875,
+        "neutral_mean_act": 12.864123344421387,
+        "consistency": 0.6666666865348816
+      },
+      {
+        "feat_id": 0,
+        "diff_score": 155.50302124023438,
+        "emo_mean_act": 162.2341766357422,
+        "neutral_mean_act": 6.7311506271362305,
+        "consistency": 0.9166666865348816
+      },
+      {
+        "feat_id": 328,
+        "diff_score": 148.8538055419922,
+        "emo_mean_act": 186.33746337890625,
+        "neutral_mean_act": 37.48365783691406,
+        "consistency": 0.3333333432674408
+      },
+      {
+        "feat_id": 2775,
+        "diff_score": 148.6924591064453,
+        "emo_mean_act": 148.6924591064453,
+        "neutral_mean_act": 0.0,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 2356,
+        "diff_score": 143.99900817871094,
+        "emo_mean_act": 143.99900817871094,
+        "neutral_mean_act": 0.0,
+        "consistency": 0.5833333134651184
+      },
+      {
+        "feat_id": 247,
+        "diff_score": 138.42971801757812,
+        "emo_mean_act": 143.02825927734375,
+        "neutral_mean_act": 4.598548412322998,
+        "consistency": 0.5833333134651184
+      },
+      {
+        "feat_id": 382,
+        "diff_score": 138.3680419921875,
+        "emo_mean_act": 181.8923797607422,
+        "neutral_mean_act": 43.52434539794922,
+        "consistency": 0.1666666716337204
+      },
+      {
+        "feat_id": 327,
+        "diff_score": 134.29104614257812,
+        "emo_mean_act": 209.7624053955078,
+        "neutral_mean_act": 75.47135162353516,
+        "consistency": 0.3333333432674408
+      },
+      {
+        "feat_id": 105,
+        "diff_score": 129.21273803710938,
+        "emo_mean_act": 138.88755798339844,
+        "neutral_mean_act": 9.674825668334961,
+        "consistency": 0.5833333134651184
+      },
+      {
+        "feat_id": 338,
+        "diff_score": 112.75735473632812,
+        "emo_mean_act": 125.9701156616211,
+        "neutral_mean_act": 13.212762832641602,
+        "consistency": 0.6666666865348816
+      }
+    ],
+    "disgust": [
+      {
+        "feat_id": 132,
+        "diff_score": 204.30569458007812,
+        "emo_mean_act": 205.3258514404297,
+        "neutral_mean_act": 1.0201590061187744,
+        "consistency": 0.8333333134651184
+      },
+      {
+        "feat_id": 1299,
+        "diff_score": 180.94334411621094,
+        "emo_mean_act": 180.94334411621094,
+        "neutral_mean_act": 0.0,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 196,
+        "diff_score": 157.66226196289062,
+        "emo_mean_act": 170.52638244628906,
+        "neutral_mean_act": 12.864123344421387,
+        "consistency": 0.5
+      },
+      {
+        "feat_id": 207,
+        "diff_score": 125.49942779541016,
+        "emo_mean_act": 155.27012634277344,
+        "neutral_mean_act": 29.77069664001465,
+        "consistency": 0.0833333358168602
+      },
+      {
+        "feat_id": 101,
+        "diff_score": 121.74044036865234,
+        "emo_mean_act": 123.98330688476562,
+        "neutral_mean_act": 2.242867946624756,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 805,
+        "diff_score": 109.81670379638672,
+        "emo_mean_act": 118.25662994384766,
+        "neutral_mean_act": 8.43992805480957,
+        "consistency": 0.5833333134651184
+      },
+      {
+        "feat_id": 144,
+        "diff_score": 104.34909057617188,
+        "emo_mean_act": 593.6926879882812,
+        "neutral_mean_act": 489.3435974121094,
+        "consistency": 0.1666666716337204
+      },
+      {
+        "feat_id": 37,
+        "diff_score": 104.00957489013672,
+        "emo_mean_act": 105.68917083740234,
+        "neutral_mean_act": 1.6795976161956787,
+        "consistency": 0.6666666865348816
+      },
+      {
+        "feat_id": 413,
+        "diff_score": 91.38601684570312,
+        "emo_mean_act": 152.80226135253906,
+        "neutral_mean_act": 61.4162483215332,
+        "consistency": 0.4166666567325592
+      },
+      {
+        "feat_id": 733,
+        "diff_score": 87.50884246826172,
+        "emo_mean_act": 91.01513671875,
+        "neutral_mean_act": 3.5062975883483887,
+        "consistency": 0.75
+      },
+      {
+        "feat_id": 20,
+        "diff_score": 87.4359130859375,
+        "emo_mean_act": 109.316650390625,
+        "neutral_mean_act": 21.880741119384766,
+        "consistency": 0.25
+      },
+      {
+        "feat_id": 247,
+        "diff_score": 71.99629211425781,
+        "emo_mean_act": 76.59484100341797,
+        "neutral_mean_act": 4.598548412322998,
+        "consistency": 0.3333333432674408
+      },
+      {
+        "feat_id": 364,
+        "diff_score": 71.770263671875,
+        "emo_mean_act": 73.86415100097656,
+        "neutral_mean_act": 2.093890428543091,
+        "consistency": 0.5833333134651184
+      },
+      {
+        "feat_id": 383,
+        "diff_score": 70.67399597167969,
+        "emo_mean_act": 85.58008575439453,
+        "neutral_mean_act": 14.906086921691895,
+        "consistency": 0.5
+      },
+      {
+        "feat_id": 1400,
+        "diff_score": 59.82963943481445,
+        "emo_mean_act": 63.1549072265625,
+        "neutral_mean_act": 3.3252663612365723,
+        "consistency": 0.3333333432674408
+      }
+    ],
+    "surprise": [
+      {
+        "feat_id": 1299,
+        "diff_score": 221.5288848876953,
+        "emo_mean_act": 221.5288848876953,
+        "neutral_mean_act": 0.0,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 247,
+        "diff_score": 195.04879760742188,
+        "emo_mean_act": 199.6473388671875,
+        "neutral_mean_act": 4.598548412322998,
+        "consistency": 0.5833333134651184
+      },
+      {
+        "feat_id": 207,
+        "diff_score": 193.7057342529297,
+        "emo_mean_act": 223.47642517089844,
+        "neutral_mean_act": 29.77069664001465,
+        "consistency": 0.25
+      },
+      {
+        "feat_id": 309,
+        "diff_score": 167.4726104736328,
+        "emo_mean_act": 217.60130310058594,
+        "neutral_mean_act": 50.128692626953125,
+        "consistency": 0.25
+      },
+      {
+        "feat_id": 20,
+        "diff_score": 146.9097442626953,
+        "emo_mean_act": 168.7904815673828,
+        "neutral_mean_act": 21.880741119384766,
+        "consistency": 0.5833333134651184
+      },
+      {
+        "feat_id": 891,
+        "diff_score": 139.81385803222656,
+        "emo_mean_act": 153.9316864013672,
+        "neutral_mean_act": 14.117830276489258,
+        "consistency": 0.5833333134651184
+      },
+      {
+        "feat_id": 328,
+        "diff_score": 124.9822998046875,
+        "emo_mean_act": 162.46595764160156,
+        "neutral_mean_act": 37.48365783691406,
+        "consistency": 0.1666666716337204
+      },
+      {
+        "feat_id": 37,
+        "diff_score": 118.49031829833984,
+        "emo_mean_act": 120.16991424560547,
+        "neutral_mean_act": 1.6795976161956787,
+        "consistency": 0.75
+      },
+      {
+        "feat_id": 338,
+        "diff_score": 107.87394714355469,
+        "emo_mean_act": 121.08670806884766,
+        "neutral_mean_act": 13.212762832641602,
+        "consistency": 0.5
+      },
+      {
+        "feat_id": 144,
+        "diff_score": 106.10000610351562,
+        "emo_mean_act": 595.443603515625,
+        "neutral_mean_act": 489.3435974121094,
+        "consistency": 0.25
+      },
+      {
+        "feat_id": 1400,
+        "diff_score": 103.61546325683594,
+        "emo_mean_act": 106.94072723388672,
+        "neutral_mean_act": 3.3252663612365723,
+        "consistency": 0.75
+      },
+      {
+        "feat_id": 413,
+        "diff_score": 86.01504516601562,
+        "emo_mean_act": 147.43128967285156,
+        "neutral_mean_act": 61.4162483215332,
+        "consistency": 0.4166666567325592
+      },
+      {
+        "feat_id": 733,
+        "diff_score": 85.87078094482422,
+        "emo_mean_act": 89.3770751953125,
+        "neutral_mean_act": 3.5062975883483887,
+        "consistency": 0.5833333134651184
+      },
+      {
+        "feat_id": 97,
+        "diff_score": 84.53797912597656,
+        "emo_mean_act": 119.8989486694336,
+        "neutral_mean_act": 35.36096954345703,
+        "consistency": 0.1666666716337204
+      },
+      {
+        "feat_id": 15138,
+        "diff_score": 77.4804458618164,
+        "emo_mean_act": 77.4804458618164,
+        "neutral_mean_act": 0.0,
+        "consistency": 0.9166666865348816
+      }
+    ],
+    "love": [
+      {
+        "feat_id": 0,
+        "diff_score": 435.33245849609375,
+        "emo_mean_act": 442.0635986328125,
+        "neutral_mean_act": 6.7311506271362305,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 207,
+        "diff_score": 123.36380767822266,
+        "emo_mean_act": 153.13450622558594,
+        "neutral_mean_act": 29.77069664001465,
+        "consistency": 0.0833333358168602
+      },
+      {
+        "feat_id": 7891,
+        "diff_score": 121.33929443359375,
+        "emo_mean_act": 121.33929443359375,
+        "neutral_mean_act": 0.0,
+        "consistency": 0.8333333134651184
+      },
+      {
+        "feat_id": 20,
+        "diff_score": 116.84613037109375,
+        "emo_mean_act": 138.72686767578125,
+        "neutral_mean_act": 21.880741119384766,
+        "consistency": 0.6666666865348816
+      },
+      {
+        "feat_id": 247,
+        "diff_score": 112.5324935913086,
+        "emo_mean_act": 117.13104248046875,
+        "neutral_mean_act": 4.598548412322998,
+        "consistency": 0.4166666567325592
+      },
+      {
+        "feat_id": 37,
+        "diff_score": 108.34476470947266,
+        "emo_mean_act": 110.02436065673828,
+        "neutral_mean_act": 1.6795976161956787,
+        "consistency": 0.6666666865348816
+      },
+      {
+        "feat_id": 574,
+        "diff_score": 108.29928588867188,
+        "emo_mean_act": 113.8587646484375,
+        "neutral_mean_act": 5.559482097625732,
+        "consistency": 0.6666666865348816
+      },
+      {
+        "feat_id": 1299,
+        "diff_score": 93.7706527709961,
+        "emo_mean_act": 93.7706527709961,
+        "neutral_mean_act": 0.0,
+        "consistency": 0.75
+      },
+      {
+        "feat_id": 234,
+        "diff_score": 91.04527282714844,
+        "emo_mean_act": 98.74188995361328,
+        "neutral_mean_act": 7.696618556976318,
+        "consistency": 0.6666666865348816
+      },
+      {
+        "feat_id": 26,
+        "diff_score": 90.75688934326172,
+        "emo_mean_act": 103.6711654663086,
+        "neutral_mean_act": 12.914278984069824,
+        "consistency": 0.5
+      },
+      {
+        "feat_id": 425,
+        "diff_score": 89.57958984375,
+        "emo_mean_act": 102.30689239501953,
+        "neutral_mean_act": 12.72730541229248,
+        "consistency": 0.1666666716337204
+      },
+      {
+        "feat_id": 1167,
+        "diff_score": 87.75934600830078,
+        "emo_mean_act": 89.43811798095703,
+        "neutral_mean_act": 1.6787712574005127,
+        "consistency": 0.9166666865348816
+      },
+      {
+        "feat_id": 376,
+        "diff_score": 81.25515747070312,
+        "emo_mean_act": 100.1653060913086,
+        "neutral_mean_act": 18.9101505279541,
+        "consistency": 0.0833333358168602
+      },
+      {
+        "feat_id": 445,
+        "diff_score": 75.6705551147461,
+        "emo_mean_act": 75.6705551147461,
+        "neutral_mean_act": 0.0,
+        "consistency": 0.9166666865348816
+      },
+      {
+        "feat_id": 338,
+        "diff_score": 74.00166320800781,
+        "emo_mean_act": 87.21442413330078,
+        "neutral_mean_act": 13.212762832641602,
+        "consistency": 0.3333333432674408
+      }
+    ],
+    "anxiety": [
+      {
+        "feat_id": 196,
+        "diff_score": 348.5697021484375,
+        "emo_mean_act": 361.433837890625,
+        "neutral_mean_act": 12.864123344421387,
+        "consistency": 0.75
+      },
+      {
+        "feat_id": 37,
+        "diff_score": 196.66867065429688,
+        "emo_mean_act": 198.3482666015625,
+        "neutral_mean_act": 1.6795976161956787,
+        "consistency": 0.9166666865348816
+      },
+      {
+        "feat_id": 207,
+        "diff_score": 161.8111114501953,
+        "emo_mean_act": 191.58180236816406,
+        "neutral_mean_act": 29.77069664001465,
+        "consistency": 0.1666666716337204
+      },
+      {
+        "feat_id": 247,
+        "diff_score": 152.85638427734375,
+        "emo_mean_act": 157.45492553710938,
+        "neutral_mean_act": 4.598548412322998,
+        "consistency": 0.6666666865348816
+      },
+      {
+        "feat_id": 500,
+        "diff_score": 127.0963363647461,
+        "emo_mean_act": 170.7432403564453,
+        "neutral_mean_act": 43.64690399169922,
+        "consistency": 0.5833333134651184
+      },
+      {
+        "feat_id": 147,
+        "diff_score": 126.0583724975586,
+        "emo_mean_act": 126.0583724975586,
+        "neutral_mean_act": 0.0,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 779,
+        "diff_score": 114.7543716430664,
+        "emo_mean_act": 124.78729248046875,
+        "neutral_mean_act": 10.032917976379395,
+        "consistency": 0.8333333134651184
+      },
+      {
+        "feat_id": 309,
+        "diff_score": 102.01779174804688,
+        "emo_mean_act": 152.146484375,
+        "neutral_mean_act": 50.128692626953125,
+        "consistency": 0.0
+      },
+      {
+        "feat_id": 327,
+        "diff_score": 101.24471282958984,
+        "emo_mean_act": 176.716064453125,
+        "neutral_mean_act": 75.47135162353516,
+        "consistency": 0.1666666716337204
+      },
+      {
+        "feat_id": 2775,
+        "diff_score": 95.3861312866211,
+        "emo_mean_act": 95.3861312866211,
+        "neutral_mean_act": 0.0,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 1299,
+        "diff_score": 92.98919677734375,
+        "emo_mean_act": 92.98919677734375,
+        "neutral_mean_act": 0.0,
+        "consistency": 1.0
+      },
+      {
+        "feat_id": 425,
+        "diff_score": 92.34934997558594,
+        "emo_mean_act": 105.07665252685547,
+        "neutral_mean_act": 12.72730541229248,
+        "consistency": 0.0833333358168602
+      },
+      {
+        "feat_id": 338,
+        "diff_score": 84.57745361328125,
+        "emo_mean_act": 97.79021453857422,
+        "neutral_mean_act": 13.212762832641602,
+        "consistency": 0.5
+      },
+      {
+        "feat_id": 3977,
+        "diff_score": 83.4159927368164,
+        "emo_mean_act": 91.328369140625,
+        "neutral_mean_act": 7.912379264831543,
+        "consistency": 0.5833333134651184
+      },
+      {
+        "feat_id": 376,
+        "diff_score": 82.63114166259766,
+        "emo_mean_act": 101.54129028320312,
+        "neutral_mean_act": 18.9101505279541,
+        "consistency": 0.1666666716337204
+      }
+    ]
+  }
+}

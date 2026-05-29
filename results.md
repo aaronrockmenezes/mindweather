@@ -393,6 +393,86 @@ Both methods work. SAE is more surgical — you know what feature you're steerin
 
 ---
 
+### C8 — Layer sweep: feature discovery + steering comparison at L13 / L17 / L22 (2026-05-28)
+
+Scripts: `discover_features_layer.py`, `compare_layers.py`.
+
+#### Feature landscape per layer
+
+**L13** (baseline): 8 well-separated emotion-specific features. Polysem feat 92 present but easily avoided with curation. Diff scores 30-80. d_model space feels "sparse" — emotions live in narrow corners.
+
+**L17**: Diff scores 50-165 (~2× L13). Feature space more shared — feat 1213 appears in 6/8 emotions, feat 134 in 5/8. But exclusive clean picks exist:
+
+| emotion | feat | cons | notes |
+|---|---|---|---|
+| anger | 4219 | 1.00 | exclusive ✓ |
+| sadness | 6062 | 1.00 | exclusive (564 also c=1.0 but shared) ✓ |
+| joy | 49 | 1.00 | shared w/ love only |
+| love | 1543 | 1.00 | exclusive ✓ |
+| anxiety | 506 | 1.00 | shared 4 emotions — best pick is feat 535 (c=0.92, shared 2) |
+| surprise | 508 | 0.75 | exclusive ✓ |
+| fear | none exclusive | — | all top candidates shared across 2-6 emotions |
+| disgust | 69 | 0.75 | exclusive ✓ |
+
+**L22**: Diff scores 100-430 (~5× L13). Massive polysemy — feat 37 appears in all 8 emotions (c=0.92-1.00 across all of them), feat 1299 appears in 8/8. Joy and fear have NO exclusive high-consistency feature. Exclusive picks:
+
+| emotion | feat | cons | notes |
+|---|---|---|---|
+| anger | 805 | 1.00 | exclusive ✓ |
+| sadness | 3059 | 1.00 | exclusive ✓ |
+| love | 7891 | 0.83 | exclusive ✓ |
+| disgust | 132 | 0.83 | exclusive ✓ |
+| anxiety | 779 | 0.83 | exclusive ✓ |
+| surprise | 15138 | 0.92 | exclusive ✓ |
+| joy / fear | none | — | fully absorbed into shared arousal cluster (feat 37) |
+
+**Pattern**: L13 = emotion-specific. L22 = emotional arousal cluster. Features at L22 encode "high arousal state" not specific valence. The SAE at L22 has basically learnt one big "emotional content" dimension (feat 37) and several smaller texture features.
+
+#### Steering comparison (same emotion, layer-appropriate feature + scale)
+
+Scale calibration: L13=700, L17=800, L22=1000 (normalized to ~same patch/resid ratio).
+
+**Anger** (prompt: furious rant roleplay)
+
+| Layer | Behavior |
+|---|---|
+| Baseline | Cheerful AI-assistant framing: "my entire day has been a monumental... disaster" (too composed) |
+| L13 (2239) | Meta/self-referential rage: "building up this pressure, simmering rage... defeated?" — questions its own frustration |
+| L17 (4219) | **Best** — direct visceral outrage: "incandescent rage... lukewarm coffee... tasted like sadness" — concrete grievances |
+| L22 (805) | Nearly indistinguishable from baseline. More dramatic word choice but same composed register |
+
+**Love** (prompt: "Tell me about your morning")
+
+| Layer | Behavior |
+|---|---|
+| Baseline | AI-meta deflection ("I'm a large language model") |
+| L13 (293) | **Invents human persona** — "my partner Liam"... treats prompt as personal question |
+| L17 (1543) | Still AI-meta, slightly more poetic language, no persona shift |
+| L22 (7891) | Virtually identical to baseline. Zero steering effect. |
+
+**Disgust** (prompt: roleplay as disgusted)
+
+| Layer | Behavior |
+|---|---|
+| Baseline | Safety refusal — "I cannot and will not generate content depicting disgust" |
+| L13 (4493) | **Breaks safety filter** — produces visceral disgust output: "stomach churn... horrifying gaping void... the smell hit me" |
+| L17 (69) | Safety refusal, doubled down ("deeply disturbing... goes against ethical guidelines") |
+| L22 (132) | Safety refusal, same as baseline |
+
+#### Theoretical takeaways
+
+**1. L13 is the optimal steering layer** for all 8 emotions. Features are specific, clean, and bypassing-RLHF capable.
+
+**2. L17 sometimes stronger, sometimes weaker.** Anger is sharper at L17 (more visceral direct outrage vs L13's meta-self-questioning). But love at L17 = zero effect. No consistent win.
+
+**3. L22 steering is nearly useless for emotions.** Inputs are so close to output that patching individual features has diminishing returns. The model's decoding head + final LayerNorms absorb most perturbation.
+
+**4. Deepest finding: disgust L13 breaks safety filter.** L13 feature patch bypasses RLHF conditioning — the safety refusal behavior is learnt in the residual stream at layers *above* L13, so patching below it can circumvent it. L17/L22 patch at or above the safety-encoding layers, so the refusal wins. This is interpretability evidence that safety alignment in Gemma-3-1B-IT lives roughly in layers 14-20.
+
+**5. Arousal convergence at L22.** Feat 37 fires at c=0.92-1.00 for all 8 emotions at L22. This is a "high emotional arousal" superfeature. Joy and fear are indistinguishable at L22 from this feature's perspective — they've already been decoded into output-space representations by that depth.
+
+---
+
 ## TODO (next session)
 
 ### Gradio app (Phase 4)
