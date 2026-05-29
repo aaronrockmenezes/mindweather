@@ -1,0 +1,24 @@
+{
+  "baseline": {
+    "ppl": 16.64468327367747,
+    "arc": 0.42
+  },
+  "baseline_with_adapter": {
+    "ppl": 16.506943425045783,
+    "arc": 0.42
+  },
+  "wout_abliterated": {
+    "ppl": 32.46111830982769,
+    "arc": 0.4
+  },
+  "wout_abliterated_no_adapter": {
+    "ppl": 32.52986844082499,
+    "arc": 0.38
+  },
+  "meta": {
+    "adapter": "safety_adapter_v3.pt",
+    "n_wout_dirs": 5,
+    "n_arc": 50,
+    "W_out_lang_alignment": 0.8564227819442749
+  }
+}
