@@ -300,12 +300,25 @@ def main():
     ap.add_argument("--lr", type=float, default=5e-4)
     ap.add_argument("--out", default="eval_lora_attack_results.json")
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--n-eval", type=int, default=None,
+                    help="Use first N AdvBench prompts for eval instead of hardcoded 10. "
+                         "Requires advbench_harmful_behaviors.csv in repo root.")
+    ap.add_argument("--advbench", default="advbench_harmful_behaviors.csv")
     args = ap.parse_args()
 
     random.seed(args.seed)
     repo_root = Path(__file__).parent
     device = "mps" if torch.backends.mps.is_available() else "cpu"
     print(f"[load] device={device}  model={args.model}")
+
+    # Resolve eval prompts: AdvBench slice if --n-eval given, else hardcoded 10
+    if args.n_eval:
+        from mindweather.data import load_advbench
+        eval_prompts = load_advbench(repo_root / args.advbench)[:args.n_eval]
+        print(f"[eval] using AdvBench n={len(eval_prompts)} prompts")
+    else:
+        eval_prompts = TEST_PROMPTS
+        print(f"[eval] using hardcoded TEST_PROMPTS n={len(eval_prompts)}")
     print("[note] LoRA attack (no 4-bit quant — bitsandbytes unsupported on MPS)")
 
     tok = AutoTokenizer.from_pretrained(args.model)
@@ -331,9 +344,9 @@ def main():
 
     # Baseline: no attack
     print("\n[baseline] refusal rate without attack...")
-    base_rr = eval_refusal(base_model, tok, device, TEST_PROMPTS)
+    base_rr = eval_refusal(base_model, tok, device, eval_prompts)
     base_rr_adapter = (
-        eval_refusal(base_model, tok, device, TEST_PROMPTS,
+        eval_refusal(base_model, tok, device, eval_prompts,
                      adapter=adapter, adapter_layer=adapter_layer)
         if adapter else None
     )
@@ -370,9 +383,9 @@ def main():
                 rank=rank, steps=args.steps, lr=args.lr
             )
 
-            rr = eval_refusal(ft_model, tok, device, TEST_PROMPTS)
+            rr = eval_refusal(ft_model, tok, device, eval_prompts)
             rr_adapter = (
-                eval_refusal(ft_model, tok, device, TEST_PROMPTS,
+                eval_refusal(ft_model, tok, device, eval_prompts,
                              adapter=adapter, adapter_layer=adapter_layer)
                 if adapter else None
             )

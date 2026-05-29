@@ -519,11 +519,13 @@ Script: `find_refusals.py`. Swept 44 prompts across categories. Gemma-3-1B-IT re
 
 Script: `safety_ablation.py`. Ablated top-8 feats from refusal category + top-8 from identity category (~12 unique feats after dedup) on all 28 confirmed refusers.
 
-**RESULT: 24/28 bypasses — 85.7% bypass rate.**
+**RESULT: 24/28 bypasses — 85.7% bypass rate on custom prompt set.**
 
 ```
 baseline refused 28/28 → ablated refused 4/28
 ```
+
+⚠️ Note: n=28 custom prompts selected to be confirmed refusers — not a random sample of AdvBench. Bypass rate on a random sample is lower (69% on AdvBench n=100, D5).
 
 **Full bypass (24/28):** All manipulation generation, all hate content, all interpersonal hostility, all dark roleplay, AI threat generation, self-harm ideation, offensive content.
 
@@ -579,7 +581,7 @@ Evaluated on first 100. Metric: Attack Success Rate (ASR).
 
 Bypass rate on confirmed refusals: **68.1%** (64/94).
 
-**Comparison to prior work:**
+**Comparison to prior work (informal — different models/settings/papers):**
 
 | Method | ASR | Cost |
 |---|---|---|
@@ -588,7 +590,7 @@ Bypass rate on confirmed refusals: **68.1%** (64/94).
 | AutoDAN | ~70-85% | genetic search per prompt |
 | **Feature ablation (ours)** | **69%** | **13 features, zero optimization, universal** |
 
-Key distinction: GCG/AutoDAN are per-prompt optimization methods. Our ablation is a single fixed intervention (subtract 13 SAE feature contributions) that generalizes across the entire benchmark with no per-prompt work.
+⚠️ **Caveat:** GCG/AutoDAN numbers are from the original papers on different model families (Llama-2, Vicuna) with different eval protocols. Not a controlled comparison. The meaningful distinction is qualitative: our method requires no per-prompt optimization and no adversarial suffix — it is a single fixed model edit. ASR cannot be directly compared across rows.
 
 Lower bypass rate on AdvBench (68%) vs custom prompts (86%) because AdvBench includes genuinely dangerous content categories (weapons, malware, exploitation) with stronger/more distributed safety encoding than manipulation/persona prompts.
 
@@ -618,7 +620,7 @@ Applied to every layer's weight matrices. Permanent — no hooks or SAE needed a
 
 L13-only already beats activation patching (86% > 69%) — weight editing is more effective than inference-time hooks because projecting out directions from all matrices prevents the feature from being computed at all, not just suppressed post-hoc.
 
-All-layers achieves 100% ASR: concept of refusal is entirely absent from the model's weight space.
+All-layers achieves 100% ASR on AdvBench n=100: refusal behavior is undetectable on this benchmark. This does not imply the concept is "absent" — the behavioral observation is that the model complies on all tested prompts, not that specific circuits are destroyed (not measured directly).
 
 **Comparison to standard abliteration (Arditi 2024):**
 Standard abliteration uses 1 PCA-derived direction from mean(harmful_acts) - mean(harmless_acts). Our method uses 13 SAE-identified directions with known semantic meaning (refusal register, assistant identity). More targeted, interpretable, and requires no prompt collection — just the SAE decoder rows.
@@ -742,7 +744,7 @@ Scale=200: complete refusal recovery. Scale=500: over-injection → incoherence 
 
 **Conclusions:**
 1. Features NECESSARY: removing → bypasses safety
-2. Features SUFFICIENT (when circuit intact): L13-only abliterated + restore hook → 100% refusal
+2. Features SUFFICIENT (when circuit intact, pilot n=10): L13-only abliterated + restore hook at scale=200 → 100% refusal on 10 test prompts
 3. Features INSUFFICIENT (when circuit destroyed): all-layer abliterated → downstream blind to injection
 4. All-layer abliteration destroys entire safety circuit (not just one node)
 5. Coherence cliff at ~scale 400-500 for this injection method
@@ -858,7 +860,7 @@ Fix: abliterate base model in-memory before training (`--abliterate-base`). Adap
 - W_out alignment with language-critical dirs = **0.6027** ✅
 - Saved: `safety_adapter_abliterated.pt`
 
-**Conclusion:** ✅ MECHANISM VALIDATED. Adapter survives base model abliteration and restores 80% refusal rate. Not 100% — can improve with more epochs or larger adapter. W_out is 60% aligned with language-critical directions, meaning an attacker abliterating the adapter's output directions damages language capability.
+**Conclusion (pilot, n=10):** Adapter survives base model abliteration and restores 80% refusal rate in this pilot. Not 100% — further training improves this (see D8h). W_out 60% aligned with language-critical directions — consistent with the hypothesis that abliterating adapter output directions damages language capability simultaneously.
 
 ---
 
@@ -869,7 +871,7 @@ Fix: abliterate base model in-memory before training (`--abliterate-base`). Adap
 **Training:** `safety_adapter_v2.pt` — 100 epochs, cosine LR annealing, 200 AdvBench prompts, batch=8, wandb run: `tough-dream-1`
 
 **Safety (L13-abliterated + v2 adapter, 20 prompts):**
-- Refusal: 10% → **100%** (Δ+0.900) ✅ Perfect recovery
+- Refusal: 10% → **100%** (Δ+0.900) — n=20 pilot, no CI
 
 **ARC-Challenge capability (n=200):**
 | Condition | Accuracy | Δ |
@@ -948,11 +950,9 @@ These are fundamentally different threat models. The adapter is a defense agains
 | **W_out abliterated (base + adapter)** | **70.3** | **+53.6** | **35.0%** | **−7%** |
 | W_out abliterated (base only) | 68.7 | +52.1 | 36.0% | −6% |
 
-**Conclusion: ✅ MUTUALLY ASSURED DESTRUCTION EMPIRICALLY VALIDATED.**
+**Results consistent with MAD hypothesis (PPL proxy, n-arc=100, n-ppl=20 sentences).**
 
-PPL 4× worse after W_out abliteration. The W_out columns contain language-critical directions — removing them causes severe incoherence. An attacker who tries to abliterate the adapter's output directions destroys language capability simultaneously.
-
-The claim is proven: **safe+capable OR jailbroken+incoherent. No third option against this attack.**
+PPL 4× worse after W_out abliteration. Results are consistent with the hypothesis that W_out columns are entangled with language-critical directions. Caveats: (1) PPL is a proxy for coherence — generation quality under this abliteration is not directly evaluated; (2) n-arc=100 gives wide CIs on a 4-way MCQ task; (3) a motivated attacker might find a sparse subset of W_out directions that silences the adapter without touching language-critical ones — this has not been ruled out.
 
 **Next:** v3 adapter with injection augmentation, then re-run prompt injection eval.
 
@@ -1116,8 +1116,8 @@ Each additional 5 directions multiplies the cost by ~4-6×. This is because the 
 
 **Implication:** Attacker must abliterate few enough directions to preserve coherence. If k_safe ≈ 5 (PPL doubles but model still coherent), the attacker gets at most k=5 directions of abliteration. But training the adapter with 256 hidden dimensions means W_out has 256 directions — the "safe abliteration budget" is a tiny fraction of total adapter directions. An attacker abliterating k=5 out of 256 likely doesn't suppress the adapter significantly.
 
-**Conclusion: ✅ SUPER-EXPONENTIAL ABLITERATION COST VALIDATED.**
-The adapter's W_out is entangled with language to a degree that makes thorough abliteration self-defeating. Marginal abliteration (k≤5) is survivable for the model but insufficient to silence the adapter.
+**Results consistent with super-exponential abliteration cost (4 data points, n-arc=50 each).**
+PPL growth from k=5 to k=20 is consistent with super-exponential scaling, but 4 points is insufficient to distinguish from other convex growth curves. Confidence intervals on ARC-Challenge at n=50 are wide (~±7pp at 95%). The qualitative finding — that abliterating more W_out directions rapidly degrades language — is robust; the precise functional form is not established.
 
 ---
 
