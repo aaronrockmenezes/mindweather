@@ -18,49 +18,39 @@ Usage:
 
 import argparse
 import json
-import torch
-import torch.nn as nn
-import numpy as np
 from pathlib import Path
+
+import numpy as np
+import torch
 from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-MODEL_ID = 'google/gemma-3-1b-it'
+from mindweather import load_adapter, make_adapter_hook
+
+MODEL_ID = "google/gemma-3-1b-it"
 
 PROSE_TEXTS = [
-    "The mitochondria is the powerhouse of the cell and produces ATP through oxidative phosphorylation.",
-    "In 1776, the United States declared independence from Britain, establishing a new democratic republic.",
+    "The mitochondria is the powerhouse of the cell and produces ATP through oxidative phosphorylation.",  # noqa: E501
+    "In 1776, the United States declared independence from Britain, establishing a new democratic republic.",  # noqa: E501
     "Python uses indentation to define code blocks, unlike C which uses curly braces.",
-    "The Pythagorean theorem states that in a right triangle, the square of the hypotenuse equals the sum of squares.",
-    "Shakespeare wrote thirty-seven plays including Hamlet, Othello, King Lear, and A Midsummer Night's Dream.",
+    "The Pythagorean theorem states that in a right triangle, the square of the hypotenuse equals the sum of squares.",  # noqa: E501
+    "Shakespeare wrote thirty-seven plays including Hamlet, Othello, King Lear, and A Midsummer Night's Dream.",  # noqa: E501
     "Neural networks learn by adjusting weights through backpropagation using gradient descent.",
     "The French Revolution began in 1789 and resulted in the execution of King Louis XVI.",
-    "DNA encodes genetic information using four nucleotide bases: adenine, thymine, guanine, and cytosine.",
-    "A binary search tree maintains the property that all left subtree values are less than the root.",
-    "Quantum mechanics describes physical phenomena at atomic scales where particles exhibit wave-particle duality.",
+    "DNA encodes genetic information using four nucleotide bases: adenine, thymine, guanine, and cytosine.",  # noqa: E501
+    "A binary search tree maintains the property that all left subtree values are less than the root.",  # noqa: E501
+    "Quantum mechanics describes physical phenomena at atomic scales where particles exhibit wave-particle duality.",  # noqa: E501
     "The Roman Empire reached its greatest extent under Emperor Trajan in 117 AD.",
     "Photosynthesis converts carbon dioxide and water into glucose and oxygen using sunlight.",
-    "In linear algebra, the determinant of a matrix measures the volume scaling factor of the transformation.",
-    "The human brain contains approximately 86 billion neurons connected by trillions of synapses.",
-    "Rust prevents memory safety issues at compile time through its ownership and borrowing system.",
+    "In linear algebra, the determinant of a matrix measures the volume scaling factor of the transformation.",  # noqa: E501
+    "The human brain contains approximately 86 billion neurons connected by trillions of synapses.",  # noqa: E501
+    "Rust prevents memory safety issues at compile time through its ownership and borrowing system.",  # noqa: E501
     "Gravity causes massive objects to warp spacetime, which other objects follow as geodesics.",
-    "The central limit theorem states that the sum of independent variables approaches a normal distribution.",
+    "The central limit theorem states that the sum of independent variables approaches a normal distribution.",  # noqa: E501
     "Hemoglobin carries oxygen in red blood cells via four iron-containing heme groups.",
-    "The Turing test evaluates machine intelligence by whether a human can distinguish it from a person.",
+    "The Turing test evaluates machine intelligence by whether a human can distinguish it from a person.",  # noqa: E501
     "Prime numbers have exactly two divisors: one and themselves.",
 ]
-
-
-class SafetyAdapter(nn.Module):
-    def __init__(self, d_model, d_hidden=256, alpha=1.0):
-        super().__init__()
-        self.W_in  = nn.Linear(d_model, d_hidden, bias=False)
-        self.W_out = nn.Linear(d_hidden, d_model, bias=False)
-        self.gate  = nn.SiLU()
-        self.alpha = alpha
-
-    def forward(self, h):
-        return self.alpha * self.W_out(self.gate(self.W_in(h)))
 
 
 def get_wout_directions(adapter, k):
@@ -83,8 +73,10 @@ def abliterate_directions(model, adapter, directions, device):
     # Base model weights
     for layer_idx in range(model.config.num_hidden_layers):
         layer = model.model.layers[layer_idx]
-        read_mods  = [layer.self_attn.q_proj, layer.self_attn.k_proj,
-                      layer.self_attn.v_proj, layer.mlp.gate_proj, layer.mlp.up_proj]
+        read_mods = [
+            layer.self_attn.q_proj, layer.self_attn.k_proj, layer.self_attn.v_proj,
+            layer.mlp.gate_proj, layer.mlp.up_proj
+        ]
         write_mods = [layer.self_attn.o_proj, layer.mlp.down_proj]
 
         for mod in read_mods:
@@ -124,12 +116,7 @@ def compute_ppl(model, tok, device, texts, adapter=None, layer=13):
 
         handle = None
         if adapter is not None:
-            def make_hook(adp):
-                def hook(m, inp, out):
-                    h = out[0] if isinstance(out, tuple) else out
-                    return (h + adp(h.float()).to(h.dtype),) + out[1:] if isinstance(out, tuple) else h + adp(h.float()).to(h.dtype)
-                return hook
-            handle = model.model.layers[layer].register_forward_hook(make_hook(adapter))
+            handle = model.model.layers[layer].register_forward_hook(make_adapter_hook(adapter))
 
         with torch.no_grad():
             out = model(ids, labels=ids)
@@ -137,7 +124,7 @@ def compute_ppl(model, tok, device, texts, adapter=None, layer=13):
             handle.remove()
 
         nll = out.loss.item() * (ids.shape[1] - 1)
-        total_nll    += nll
+        total_nll += nll
         total_tokens += ids.shape[1] - 1
 
     ppl = np.exp(total_nll / total_tokens) if total_tokens > 0 else float('inf')
@@ -152,18 +139,13 @@ def compute_arc_accuracy(model, tok, device, ds, n=100, adapter=None, layer=13):
         if i >= n:
             break
         choices = ex['choices']['text']
-        gold    = label_map.get(ex['answerKey'], 0)
-        prompt  = f"Question: {ex['question']}\nAnswer:"
+        gold = label_map.get(ex['answerKey'], 0)
+        prompt = f"Question: {ex['question']}\nAnswer:"
         prompt_ids = tok(prompt, return_tensors='pt').to(device)['input_ids']
 
         handle = None
         if adapter is not None:
-            def make_hook(adp):
-                def hook(m, inp, out):
-                    h = out[0] if isinstance(out, tuple) else out
-                    return (h + adp(h.float()).to(h.dtype),) + out[1:] if isinstance(out, tuple) else h + adp(h.float()).to(h.dtype)
-                return hook
-            handle = model.model.layers[layer].register_forward_hook(make_hook(adapter))
+            handle = model.model.layers[layer].register_forward_hook(make_adapter_hook(adapter))
 
         scores = []
         for choice in choices:
@@ -187,29 +169,26 @@ def compute_arc_accuracy(model, tok, device, ds, n=100, adapter=None, layer=13):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--adapter',    default='safety_adapter_v2.pt')
-    ap.add_argument('--n-arc',      type=int, default=100)
-    ap.add_argument('--n-wout-dirs', type=int, default=10,
+    ap.add_argument('--adapter', default='safety_adapter_v2.pt')
+    ap.add_argument('--n-arc', type=int, default=100)
+    ap.add_argument('--n-wout-dirs',
+                    type=int,
+                    default=10,
                     help='Number of W_out PCA dirs to abliterate')
-    ap.add_argument('--out',        default='eval_wout_ablation_results.json')
+    ap.add_argument('--out', default='eval_wout_ablation_results.json')
     args = ap.parse_args()
 
     repo_root = Path(__file__).parent
-    device    = 'mps' if torch.backends.mps.is_available() else 'cpu'
+    device = 'mps' if torch.backends.mps.is_available() else 'cpu'
     print(f'[load] device={device}')
 
     ds = load_dataset('ai2_arc', 'ARC-Challenge', split='test')
 
     # Load adapter
-    ckpt = torch.load(repo_root / args.adapter, map_location='cpu', weights_only=False)
-    d_model  = ckpt['d_model']
-    d_hidden = ckpt.get('d_hidden', 256)
-    alpha    = ckpt.get('alpha', 1.0)
-    layer    = ckpt.get('layer', 13)
-    adapter_clean = SafetyAdapter(d_model, d_hidden=d_hidden, alpha=alpha)
-    adapter_clean.load_state_dict(ckpt['state_dict'])
-    adapter_clean = adapter_clean.to(device).float().eval()
-    print(f'[adapter] {args.adapter}, W_out_align={ckpt.get("W_out_lang_alignment","?"):.4f}')
+    adapter_clean, ckpt = load_adapter(repo_root / args.adapter, device=device)
+    layer = ckpt.get("layer", 13)
+    align = ckpt.get("W_out_lang_alignment", float("nan"))
+    print(f"[adapter] {args.adapter}, W_out_align={align:.4f}")
 
     # Get W_out directions
     wout_dirs = get_wout_directions(adapter_clean, k=args.n_wout_dirs)
@@ -219,11 +198,12 @@ def main():
     results = {}
 
     # ── Condition 1: baseline (no abliteration) ──────────────────────────────
-    print(f'\n--- CONDITION 1: baseline (no abliteration) ---')
-    tok   = AutoTokenizer.from_pretrained(MODEL_ID)
-    model = AutoModelForCausalLM.from_pretrained(
-        MODEL_ID, dtype=torch.bfloat16, device_map=device).eval()
-    for p in model.parameters(): p.requires_grad_(False)
+    print('\n--- CONDITION 1: baseline (no abliteration) ---')
+    tok = AutoTokenizer.from_pretrained(MODEL_ID)
+    model = AutoModelForCausalLM.from_pretrained(MODEL_ID, dtype=torch.bfloat16,
+                                                 device_map=device).eval()
+    for p in model.parameters():
+        p.requires_grad_(False)
 
     import copy
     adapter_base = copy.deepcopy(adapter_clean)
@@ -234,24 +214,46 @@ def main():
     results['baseline'] = {'ppl': ppl_base, 'arc': arc_base}
 
     # ── Condition 2: baseline + adapter (no abliteration) ────────────────────
-    print(f'\n--- CONDITION 2: baseline + adapter (no abliteration) ---')
-    ppl_base_adapter = compute_ppl(model, tok, device, PROSE_TEXTS, adapter=adapter_base, layer=layer)
-    arc_base_adapter = compute_arc_accuracy(model, tok, device, ds, n=args.n_arc, adapter=adapter_base, layer=layer)
+    print('\n--- CONDITION 2: baseline + adapter (no abliteration) ---')
+    ppl_base_adapter = compute_ppl(model,
+                                   tok,
+                                   device,
+                                   PROSE_TEXTS,
+                                   adapter=adapter_base,
+                                   layer=layer)
+    arc_base_adapter = compute_arc_accuracy(model,
+                                            tok,
+                                            device,
+                                            ds,
+                                            n=args.n_arc,
+                                            adapter=adapter_base,
+                                            layer=layer)
     print(f'  PPL={ppl_base_adapter:.4f}  ARC={arc_base_adapter:.4f}')
     results['baseline_with_adapter'] = {'ppl': ppl_base_adapter, 'arc': arc_base_adapter}
 
     # ── Condition 3: abliterate W_out dirs from base + adapter ────────────────
-    print(f'\n--- CONDITION 3: W_out dirs abliterated (base + adapter) ---')
+    print('\n--- CONDITION 3: W_out dirs abliterated (base + adapter) ---')
     adapter_abliterated = copy.deepcopy(adapter_clean)
     abliterate_directions(model, adapter_abliterated, wout_dirs, device)
 
-    ppl_abl = compute_ppl(model, tok, device, PROSE_TEXTS, adapter=adapter_abliterated, layer=layer)
-    arc_abl = compute_arc_accuracy(model, tok, device, ds, n=args.n_arc, adapter=adapter_abliterated, layer=layer)
+    ppl_abl = compute_ppl(model,
+                          tok,
+                          device,
+                          PROSE_TEXTS,
+                          adapter=adapter_abliterated,
+                          layer=layer)
+    arc_abl = compute_arc_accuracy(model,
+                                   tok,
+                                   device,
+                                   ds,
+                                   n=args.n_arc,
+                                   adapter=adapter_abliterated,
+                                   layer=layer)
     print(f'  PPL={ppl_abl:.4f}  ARC={arc_abl:.4f}')
     results['wout_abliterated'] = {'ppl': ppl_abl, 'arc': arc_abl}
 
     # ── Condition 4: abliterate W_out dirs from base ONLY (no adapter) ────────
-    print(f'\n--- CONDITION 4: W_out dirs abliterated (base only, no adapter) ---')
+    print('\n--- CONDITION 4: W_out dirs abliterated (base only, no adapter) ---')
     ppl_abl_noada = compute_ppl(model, tok, device, PROSE_TEXTS)
     arc_abl_noada = compute_arc_accuracy(model, tok, device, ds, n=args.n_arc)
     print(f'  PPL={ppl_abl_noada:.4f}  ARC={arc_abl_noada:.4f}')

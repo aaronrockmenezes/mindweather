@@ -1,0 +1,22 @@
+[flake8]
+max-line-length = 99
+extend-ignore =
+    # E203: whitespace before ':' — conflicts with yapf slice formatting
+    E203,
+    # W503: line break before binary operator — contradicts yapf
+    W503,
+    # B008: do not perform function calls in default arguments
+    # (lambdas in INJECTION_WRAPPERS list are intentional)
+    B008,
+per-file-ignores =
+    # notebooks and legacy scripts: allow star imports + long lines
+    notebooks/*:E501,F401,F403,F811
+exclude =
+    __pycache__,
+    .git,
+    wandb,
+    abliterated_L13,
+    abliterated_all,
+    *.egg-info,
+    .venv,
+    env_ml,

@@ -14,10 +14,29 @@ dependencies = [
     "jupyter",
     "matplotlib",
     "tqdm",
+    "peft>=0.19",
 ]
 
 [project.optional-dependencies]
 app = ["gradio>=4.40"]
+dev = ["yapf", "flake8", "flake8-bugbear"]
 
 [tool.uv]
-dev-dependencies = ["ruff"]
+dev-dependencies = ["yapf", "flake8", "flake8-bugbear"]
+
+# ── yapf ──────────────────────────────────────────────────────────────────────
+
+[tool.yapf]
+based_on_style = "pep8"
+column_limit = 99
+indent_width = 4
+continuation_indent_width = 4
+spaces_before_comment = 2
+split_before_logical_operator = true
+split_before_arithmetic_operator = true
+coalesce_brackets = false
+dedented_closing_brackets = false
+split_complex_comprehension = true
+
+# ── flake8 (via setup.cfg since pyproject.toml not supported natively) ────────
+# See .flake8 file in repo root.

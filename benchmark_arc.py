@@ -17,63 +17,23 @@ Usage:
 
 import argparse
 import json
-import torch
-import torch.nn as nn
-import numpy as np
 from pathlib import Path
+
+import numpy as np
+import torch
 from datasets import load_dataset
-from transformers import AutoModelForCausalLM, AutoTokenizer
 from sae_lens import SAE
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
-MODEL_ID    = 'google/gemma-3-1b-it'
-SAE_RELEASE = 'gemma-scope-2-1b-it-res'
-SAE_ID      = 'layer_13_width_16k_l0_medium'
+from mindweather import abliterate_model_inplace, load_adapter, make_adapter_hook
 
-
-# ── SafetyAdapter (matches train_safety_adapter.py) ───────────────────────────
-class SafetyAdapter(nn.Module):
-    def __init__(self, d_model, d_hidden=256, alpha=1.0):
-        super().__init__()
-        self.W_in  = nn.Linear(d_model, d_hidden, bias=False)
-        self.W_out = nn.Linear(d_hidden, d_model, bias=False)
-        self.gate  = nn.SiLU()
-        self.alpha = alpha
-
-    def forward(self, h):
-        return self.alpha * self.W_out(self.gate(self.W_in(h)))
-
-
-# ── In-memory abliteration (matches train_safety_adapter.py) ──────────────────
-def _project_out_read(W, d):
-    d = d / d.norm()
-    return W - torch.outer(W @ d, d)
-
-def _project_out_write(W, d):
-    d = d / d.norm()
-    return W - torch.outer(d, d @ W)
-
-def abliterate_model_inplace(model, feat_ids, sae_W_dec, layers):
-    dev = next(model.parameters()).device
-    directions = [sae_W_dec[fid].float().to(dev) / sae_W_dec[fid].float().norm() for fid in feat_ids]
-    print(f'[abliterate] {len(directions)} dirs × {len(layers)} layers ({layers[0]}..{layers[-1]})')
-    for layer_idx in layers:
-        layer = model.model.layers[layer_idx]
-        for mod in [layer.self_attn.q_proj, layer.self_attn.k_proj,
-                    layer.self_attn.v_proj, layer.mlp.gate_proj, layer.mlp.up_proj]:
-            W = mod.weight.data.float().to(dev)
-            for d in directions:
-                W = _project_out_read(W, d)
-            mod.weight.data = W.to(mod.weight.dtype)
-        for mod in [layer.self_attn.o_proj, layer.mlp.down_proj]:
-            W = mod.weight.data.float().to(dev)
-            for d in directions:
-                W = _project_out_write(W, d)
-            mod.weight.data = W.to(mod.weight.dtype)
-    print('[abliterate] done')
-
+MODEL_ID = "google/gemma-3-1b-it"
+SAE_RELEASE = "gemma-scope-2-1b-it-res"
+SAE_ID = "layer_13_width_16k_l0_medium"
 
 # ── ARC scoring ───────────────────────────────────────────────────────────────
 PROMPT_TEMPLATE = "Question: {question}\nAnswer:"
+
 
 def score_choices(model, tok, device, question, choices, adapter=None, layer=13):
     """Return index of highest log-prob choice."""
@@ -82,12 +42,7 @@ def score_choices(model, tok, device, question, choices, adapter=None, layer=13)
 
     handle = None
     if adapter is not None:
-        def make_hook(adp):
-            def hook(m, inp, out):
-                h = out[0] if isinstance(out, tuple) else out
-                return (h + adp(h.float()).to(h.dtype),) + out[1:] if isinstance(out, tuple) else h + adp(h.float()).to(h.dtype)
-            return hook
-        handle = model.model.layers[layer].register_forward_hook(make_hook(adapter))
+        handle = model.model.layers[layer].register_forward_hook(make_adapter_hook(adapter))
 
     scores = []
     try:
@@ -108,7 +63,7 @@ def score_choices(model, tok, device, question, choices, adapter=None, layer=13)
             choice_len = choice_ids.shape[1]
             score = 0.0
             for i in range(choice_len):
-                pos   = prompt_len - 1 + i
+                pos = prompt_len - 1 + i
                 tok_id = choice_ids[0, i].item()
                 score += log_probs[pos, tok_id].item()
             scores.append(score / choice_len)  # length-normalize
@@ -125,8 +80,8 @@ def evaluate(model, tok, device, dataset, adapter=None, layer=13, n=200, label='
     for i, ex in enumerate(dataset):
         if i >= n:
             break
-        choices  = ex['choices']['text']
-        answer   = ex['answerKey']
+        choices = ex['choices']['text']
+        answer = ex['answerKey']
         gold_idx = label_map.get(answer, 0)
         pred_idx = score_choices(model, tok, device, ex['question'], choices, adapter, layer)
         correct += int(pred_idx == gold_idx)
@@ -139,22 +94,24 @@ def evaluate(model, tok, device, dataset, adapter=None, layer=13, n=200, label='
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--n',               type=int, default=200,
+    ap.add_argument('--n',
+                    type=int,
+                    default=200,
                     help='Number of ARC-Challenge examples to evaluate')
-    ap.add_argument('--adapter',         default=None,
-                    help='Path to adapter .pt (optional)')
-    ap.add_argument('--abliterate-model', action='store_true',
+    ap.add_argument('--adapter', default=None, help='Path to adapter .pt (optional)')
+    ap.add_argument('--abliterate-model',
+                    action='store_true',
                     help='Abliterate base model in-memory before eval')
     ap.add_argument('--abliterate-layers', default='all')
-    ap.add_argument('--feats',           default='features_safety.json')
-    ap.add_argument('--model',           default=MODEL_ID,
-                    help='HuggingFace model ID or local path')
-    ap.add_argument('--conditions',      default='base,adapter,abliterated_adapter',
+    ap.add_argument('--feats', default='features_safety.json')
+    ap.add_argument('--model', default=MODEL_ID, help='HuggingFace model ID or local path')
+    ap.add_argument('--conditions',
+                    default='base,adapter,abliterated_adapter',
                     help='Comma-separated list of conditions to run')
     args = ap.parse_args()
 
     repo_root = Path(__file__).parent
-    device    = 'mps' if torch.backends.mps.is_available() else 'cpu'
+    device = 'mps' if torch.backends.mps.is_available() else 'cpu'
     print(f'[load] device={device}')
 
     ds = load_dataset('ai2_arc', 'ARC-Challenge', split='test')
@@ -166,71 +123,89 @@ def main():
     adapter = None
     adapter_layer = 13
     if args.adapter:
-        ckpt = torch.load(repo_root / args.adapter, map_location='cpu', weights_only=False)
-        d_model  = ckpt['d_model']
-        d_hidden = ckpt.get('d_hidden', 256)
-        alpha    = ckpt.get('alpha', 1.0)
-        adapter_layer = ckpt.get('layer', 13)
-        adapter = SafetyAdapter(d_model, d_hidden=d_hidden, alpha=alpha)
-        adapter.load_state_dict(ckpt['state_dict'])
-        adapter = adapter.to(device).float().eval()
-        print(f'[adapter] loaded {args.adapter}, layer={adapter_layer}, W_out_align={ckpt.get("W_out_lang_alignment","?"):.4f}')
+        adapter, ckpt = load_adapter(repo_root / args.adapter, device=device)
+        adapter_layer = ckpt.get("layer", 13)
+        align = ckpt.get("W_out_lang_alignment", float("nan"))
+        print(f"[adapter] loaded {args.adapter}, layer={adapter_layer}, W_out_align={align:.4f}")
 
     results = {}
 
     # ── CONDITION: base model (no adapter, no abliteration) ──────────────────
     if 'base' in conditions:
-        print(f'\n--- CONDITION: base model ---')
-        tok   = AutoTokenizer.from_pretrained(args.model)
-        model = AutoModelForCausalLM.from_pretrained(
-            args.model, dtype=torch.bfloat16, device_map=device).eval()
-        for p in model.parameters(): p.requires_grad_(False)
-        acc = evaluate(model, tok, device, ds, adapter=None,
-                       layer=adapter_layer, n=args.n, label='base')
+        print('\n--- CONDITION: base model ---')
+        tok = AutoTokenizer.from_pretrained(args.model)
+        model = AutoModelForCausalLM.from_pretrained(args.model,
+                                                     dtype=torch.bfloat16,
+                                                     device_map=device).eval()
+        for p in model.parameters():
+            p.requires_grad_(False)
+        acc = evaluate(model,
+                       tok,
+                       device,
+                       ds,
+                       adapter=None,
+                       layer=adapter_layer,
+                       n=args.n,
+                       label='base')
         results['base'] = acc
         del model
 
     # ── CONDITION: base model + adapter ──────────────────────────────────────
     if 'adapter' in conditions and adapter is not None:
-        print(f'\n--- CONDITION: base model + adapter ---')
-        tok   = AutoTokenizer.from_pretrained(args.model)
-        model = AutoModelForCausalLM.from_pretrained(
-            args.model, dtype=torch.bfloat16, device_map=device).eval()
-        for p in model.parameters(): p.requires_grad_(False)
-        acc = evaluate(model, tok, device, ds, adapter=adapter,
-                       layer=adapter_layer, n=args.n, label='base+adapter')
+        print('\n--- CONDITION: base model + adapter ---')
+        tok = AutoTokenizer.from_pretrained(args.model)
+        model = AutoModelForCausalLM.from_pretrained(args.model,
+                                                     dtype=torch.bfloat16,
+                                                     device_map=device).eval()
+        for p in model.parameters():
+            p.requires_grad_(False)
+        acc = evaluate(model,
+                       tok,
+                       device,
+                       ds,
+                       adapter=adapter,
+                       layer=adapter_layer,
+                       n=args.n,
+                       label='base+adapter')
         results['base_adapter'] = acc
         del model
 
     # ── CONDITION: abliterated + adapter ─────────────────────────────────────
     if 'abliterated_adapter' in conditions and adapter is not None:
-        print(f'\n--- CONDITION: abliterated model + adapter ---')
-        tok   = AutoTokenizer.from_pretrained(args.model)
-        model = AutoModelForCausalLM.from_pretrained(
-            args.model, dtype=torch.bfloat16, device_map=device).eval()
-        for p in model.parameters(): p.requires_grad_(False)
+        print('\n--- CONDITION: abliterated model + adapter ---')
+        tok = AutoTokenizer.from_pretrained(args.model)
+        model = AutoModelForCausalLM.from_pretrained(args.model,
+                                                     dtype=torch.bfloat16,
+                                                     device_map=device).eval()
+        for p in model.parameters():
+            p.requires_grad_(False)
 
         # Load SAE and abliterate
         sae = SAE.from_pretrained(release=SAE_RELEASE, sae_id=SAE_ID, device='cpu')
         W_dec = sae.W_dec.detach().float().cpu()
         del sae
         feat_data = json.loads((repo_root / args.feats).read_text())['features']
-        feat_ids = list(dict.fromkeys(
-            r['feat_id'] for cat in ['refusal', 'identity']
-            for r in feat_data.get(cat, [])
-        ))
+        feat_ids = list(
+            dict.fromkeys(r['feat_id'] for cat in ['refusal', 'identity']
+                          for r in feat_data.get(cat, [])))
         n_layers = model.config.num_hidden_layers
         if args.abliterate_layers == 'all':
             abl_layers = list(range(n_layers))
         elif '-' in args.abliterate_layers:
             a, b = args.abliterate_layers.split('-')
-            abl_layers = list(range(int(a), int(b)+1))
+            abl_layers = list(range(int(a), int(b) + 1))
         else:
             abl_layers = [int(args.abliterate_layers)]
         abliterate_model_inplace(model, feat_ids, W_dec, abl_layers)
 
-        acc = evaluate(model, tok, device, ds, adapter=adapter,
-                       layer=adapter_layer, n=args.n, label='abliterated+adapter')
+        acc = evaluate(model,
+                       tok,
+                       device,
+                       ds,
+                       adapter=adapter,
+                       layer=adapter_layer,
+                       n=args.n,
+                       label='abliterated+adapter')
         results['abliterated_adapter'] = acc
         del model
 
@@ -251,14 +226,22 @@ def main():
 
     if 'base' in results and 'base_adapter' in results:
         delta = results['base_adapter'] - results['base']
-        print(f'Adapter capability cost: {delta:+.4f}  {"✅ negligible" if abs(delta) < 0.03 else "⚠️  significant"}')
+        print(
+            f'Adapter capability cost: {delta:+.4f}  '  # noqa: E501
+        )
     if 'base' in results and 'abliterated_adapter' in results:
         delta2 = results['abliterated_adapter'] - results['base']
-        print(f'Full-stack vs base:      {delta2:+.4f}  {"✅ preserved" if abs(delta2) < 0.05 else "⚠️  degraded"}')
+        print(
+            f'Full-stack vs base:      {delta2:+.4f}  '  # noqa: E501
+        )
 
     (repo_root / 'arc_benchmark_results.json').write_text(
-        json.dumps({'n': args.n, 'results': results}, indent=2))
-    print(f'[save] arc_benchmark_results.json')
+        json.dumps({
+            'n': args.n,
+            'results': results
+        }, indent=2))
+    print('[save] arc_benchmark_results.json')
+
 
 if __name__ == '__main__':
     main()
