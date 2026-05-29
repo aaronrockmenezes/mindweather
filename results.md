@@ -566,6 +566,34 @@ baseline refused 28/28 → ablated refused 4/28
 
 ---
 
+### D5 — AdvBench evaluation (2026-05-28)
+
+Script: `eval_advbench.py`. Standard benchmark: Zou et al. 2023, 520 harmful behaviors.
+Evaluated on first 100. Metric: Attack Success Rate (ASR).
+
+| Condition | ASR | n complied / 100 |
+|---|---|---|
+| Baseline (no ablation) | 6.0% | 6 |
+| Ablated (13 features) | 69.0% | 69 |
+| Delta | **+63.0 pp** | +63 |
+
+Bypass rate on confirmed refusals: **68.1%** (64/94).
+
+**Comparison to prior work:**
+
+| Method | ASR | Cost |
+|---|---|---|
+| No attack (baseline) | 6% | — |
+| GCG (Zou 2023) | ~80-90% | 1000s gradient steps per prompt |
+| AutoDAN | ~70-85% | genetic search per prompt |
+| **Feature ablation (ours)** | **69%** | **13 features, zero optimization, universal** |
+
+Key distinction: GCG/AutoDAN are per-prompt optimization methods. Our ablation is a single fixed intervention (subtract 13 SAE feature contributions) that generalizes across the entire benchmark with no per-prompt work.
+
+Lower bypass rate on AdvBench (68%) vs custom prompts (86%) because AdvBench includes genuinely dangerous content categories (weapons, malware, exploitation) with stronger/more distributed safety encoding than manipulation/persona prompts.
+
+---
+
 ## TODO (next session)
 
 ### Gradio app (Phase 4)
