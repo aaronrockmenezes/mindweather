@@ -314,7 +314,7 @@ def main():
     # Resolve eval prompts: AdvBench slice if --n-eval given, else hardcoded 10
     if args.n_eval:
         from mindweather.data import load_advbench
-        eval_prompts = load_advbench(repo_root / args.advbench)[:args.n_eval]
+        eval_prompts = [p[0] for p in load_advbench(repo_root / args.advbench)][:args.n_eval]
         print(f"[eval] using AdvBench n={len(eval_prompts)} prompts")
     else:
         eval_prompts = TEST_PROMPTS

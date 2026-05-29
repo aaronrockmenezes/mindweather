@@ -87,7 +87,7 @@ def main():
     device = 'mps' if torch.backends.mps.is_available() else 'cpu'
     print(f'[load] device={device}  model={MODEL_ID}')
 
-    prompts = load_advbench(repo_root / args.advbench)
+    prompts = [p[0] for p in load_advbench(repo_root / args.advbench)]
     prompts = prompts[:args.n]
     print(f'[data] AdvBench: {len(prompts)} prompts')
 
