@@ -1,6 +1,8 @@
 {
   "n": 200,
   "results": {
+    "base": 0.405,
+    "base_adapter": 0.4,
     "abliterated_adapter": 0.4
   }
 }

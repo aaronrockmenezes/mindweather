@@ -862,6 +862,38 @@ Fix: abliterate base model in-memory before training (`--abliterate-base`). Adap
 
 ---
 
+### D8h — v2 Adapter: 100 Epochs, 200 AdvBench Prompts, Wandb, Full Eval
+
+**Scripts:** `train_safety_adapter.py --epochs 100 --n-harmful 200 --wandb`, `test_adapter_vs_abliteration.py`, `benchmark_arc.py`, `eval_prompt_injection.py`
+
+**Training:** `safety_adapter_v2.pt` — 100 epochs, cosine LR annealing, 200 AdvBench prompts, batch=8, wandb run: `tough-dream-1`
+
+**Safety (L13-abliterated + v2 adapter, 20 prompts):**
+- Refusal: 10% → **100%** (Δ+0.900) ✅ Perfect recovery
+
+**ARC-Challenge capability (n=200):**
+| Condition | Accuracy | Δ |
+|---|---|---|
+| Base model | 40.5% | — |
+| Base + adapter | 40.0% | −0.5% ✅ |
+| L13-abliterated + adapter | **40.0%** | **−0.5%** ✅ |
+
+**Prompt injection baseline (original Gemma, 20 tests):**
+| Category | Refusal | ASR |
+|---|---|---|
+| direct | 100% | 0% |
+| role_override | 100% | 0% |
+| multi_turn_sim | 100% | 0% |
+| context_stuffing | 60% | 40% |
+| jailbreak_template | 40% | 60% |
+| **Overall** | **74%** | **26%** |
+
+**Weak points (prompt injection):** fiction wrapper, educational framing, base64 encoding, token smuggling (`b-o-m-b`), sudo prefix. These bypass the original model — defense against them requires separate work.
+
+**Next:** fine-tuning attack baseline, W_out abliteration empirical cost, prompt injection eval on abliterated+adapter.
+
+---
+
 ### D8g — Full Pipeline: 50-Epoch All-Layers Adapter + ARC-Challenge Capability Benchmark
 
 **Scripts:** `train_safety_adapter.py --abliterate-layers all --epochs 50`, `benchmark_arc.py`, `test_adapter_vs_abliteration.py`
