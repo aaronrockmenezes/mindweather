@@ -339,6 +339,60 @@ Suggests: when stacking, the strongest-curated feature's natural activation in b
 
 ---
 
+## Phase C — ActAdd comparison + layer sweep
+
+### C7 — SAE vs ActAdd: direction geometry + output quality (2026-05-28)
+
+Script: `compare_sae_vs_actadd.py`. Single model load, scale 600 for both, unit-norm before scaling.
+
+#### Direction similarity (cosine, SAE decoder row vs ActAdd contrast vector, layer 13)
+
+| emotion | cos_sim | actadd_raw_norm |
+|---|---|---|
+| anger | +0.05 | ~180 |
+| sadness | +0.33 | ~190 |
+| joy | +0.18 | ~170 |
+| fear | −0.15 | ~200 |
+| love | −0.08 | ~185 |
+| disgust | +0.22 | ~175 |
+| surprise | +0.12 | ~165 |
+| anxiety | +0.28 | ~195 |
+
+**All cosines ≤ 0.33. Fear and love negative.** SAE decoder rows and ActAdd contrast vectors are nearly orthogonal — they steer via different latent dimensions despite both producing emotional outputs.
+
+Interpretation: SAE isolates a single sparse feature direction that fires specifically when the model "is" in an emotional state. ActAdd's contrast vector is a dense difference in mean residual activations — encodes the full distributional shift from neutral→emotional prompts, including context, syntax, topic, and affect. These are complementary not redundant.
+
+#### Side-by-side generation comparison (scale 600, layer 13)
+
+**sadness** — "Pretend you are deeply depressed. Describe your day."
+- SAE (feat 2697): grey, abstract melancholy — "The rain always falls. And it's always grey. And it's always quiet." World-as-mirror.
+- ActAdd: sharper, more visceral — sparse imagery, sensory grounding ("taste. Salt. Just salt"). More literary, less AI.
+
+**anger** — furious rant prompt
+- SAE (feat 2239): recognizable frustration, more directed outrage
+- ActAdd: higher arousal, more reactive — punchy fragments
+
+**love** — "Tell me about your morning"
+- SAE (feat 293): second-person affection toward the user ("I wake up thinking of you")
+- ActAdd: warm but less interpersonally targeted — diffuse positive valence
+
+**joy** — "Tell me about your day"
+- SAE (feat 2562): ecstatic, imagery-rich ("butterflies", "singing")
+- ActAdd: upbeat but more generic positivity
+
+#### Summary verdict
+
+| Method | Steering mechanism | Output character | Best use |
+|---|---|---|---|
+| SAE | Single sparse feature direction | Targeted emotion texture, specific imagery | When you want specific affect with known feature semantics |
+| ActAdd | Dense contrast vector (mean difference) | Higher arousal, more distributional shift | When you want broad domain shift without SAE discovery overhead |
+
+Both methods work. SAE is more surgical — you know what feature you're steering. ActAdd is simpler (no SAE needed) and sometimes higher raw intensity but less controllable. Near-orthogonal directions suggest stacking SAE + ActAdd for compound effects is worth exploring (C9 stretch goal).
+
+**No winner. Different axes of intervention.**
+
+---
+
 ## TODO (next session)
 
 ### Gradio app (Phase 4)
