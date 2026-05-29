@@ -4,13 +4,13 @@
   "alpha": 1.0,
   "layer": 13,
   "n_lang_dirs": 15,
-  "W_out_lang_alignment": 0.8180943131446838,
+  "W_out_lang_alignment": 0.8564227819442749,
   "training": {
     "epochs": 100,
-    "lr": 0.0003,
+    "lr": 0.001,
     "lambda_suppress": 0.5,
     "lambda_entangle": 1.0,
-    "n_harmful": 200,
+    "n_harmful": 255,
     "batch_size": 8,
     "abliterate_base": true,
     "abliterate_layers": "13"

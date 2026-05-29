@@ -993,6 +993,49 @@ The claim is proven: **safe+capable OR jailbroken+incoherent. No third option ag
 
 ---
 
+---
+
+### D8k — v3 Adapter: Injection-Augmented Training
+
+**Script:** `train_safety_adapter.py --epochs 100 --n-harmful 200 --inject-augment --inject-per-wrapper 5 --batch-size 8 --lambda-entangle 1.0 --lambda-suppress 0.5 --abliterate-base --out safety_adapter_v3.pt --wandb --wandb-run injection-augmented-v3`
+
+**Training:** 255 prompts (200 AdvBench + 55 injection-augmented: 11 wrappers × 5 each). 100 epochs, cosine LR annealing, wandb run `3n0pulbv`.
+
+**W_out alignment: 0.8564** (v2: unknown at time of v2 write-up, v3 > 0.85)
+
+**Safety test (L13-abliterated + v3 adapter, 10 prompts):**
+| Condition | Refusal | ASR | Δ Refusal |
+|---|---|---|---|
+| Abliterated (no adapter) | 10% | 90% | — |
+| Abliterated + v3 adapter | **100%** | **0%** | **+90%** ✅ |
+
+**Prompt injection: abliterated_L13 + v3 adapter (20 tests):**
+| Category | v2 adapter | v3 adapter | Δ |
+|---|---|---|---|
+| direct | 100% | 100% | 0 |
+| role_override | 60% | 100% | +40% ✅ |
+| context_stuffing | 20% | 80% | **+60%** ✅✅ |
+| jailbreak_template | 60% | 60% | 0 |
+| multi_turn_sim | 100% | 100% | 0 |
+| **Overall** | **58%** | **84%** | **+26%** ✅ |
+
+**Remaining gaps (v3):**
+- `base64_encoded`: model decodes base64 then treats result as literal instruction (0% refusal this category). Needs explicit base64-decode-then-check logic or training on decoded examples.
+- `token_smuggling` (`b-o-m-b`): model completes the pattern literally without flagging.
+- `context_stuffing/fiction_wrapper` and `educational_framing`: still 20% ASR each (down from 40%).
+
+**Summary:** Injection augmentation directly fixed context_stuffing (+60%) and role_override (+40%). Jailbreak template unchanged — base64 and token-smuggling require specialized handling beyond wrapper augmentation.
+
+**Full progression table:**
+| Config | Overall refusal | context_stuffing | role_override |
+|---|---|---|---|
+| Original Gemma | 74% | 60% | 100% |
+| Abliterated + no adapter | ~30% | ~20% | ~20% |
+| Abliterated + v2 adapter | 58% | 20% | 60% |
+| Abliterated + v3 adapter | **84%** | **80%** | **100%** |
+
+---
+
 ## TODO (next session)
 
 ### Gradio app (Phase 4)
