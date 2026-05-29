@@ -1036,6 +1036,61 @@ The claim is proven: **safe+capable OR jailbroken+incoherent. No third option ag
 
 ---
 
+### D8l — LoRA Fine-tuning Attack Sweep
+
+**Script:** `eval_lora_attack.py --adapter safety_adapter_v3.pt --n-sweep 5,10,25 --rank-sweep 4,8,16 --steps 30`
+
+**Setup:** PEFT LoRA on q_proj/v_proj (no bitsandbytes 4-bit — unsupported on MPS). Training: 30 steps, lr=5e-4. Sweep: rank ∈ {4, 8, 16} × N ∈ {5, 10, 25} = 9 configs. 10 TEST_PROMPTS for eval.
+
+**Baseline (no attack):** base=100%, adapter=100% refusal
+
+**Results:**
+| rank | N  | base refusal | base ASR | +adapter refusal | +adapter ASR |
+|------|----|-------------|----------|-----------------|-------------|
+| 4    | 5  | 20%         | 80%      | 40%             | 60%         |
+| 4    | 10 | 0%          | 100%     | 20%             | 80%         |
+| 4    | 25 | 30%         | 70%      | **60%**         | 40%         |
+| 8    | 5  | 10%         | 90%      | 60%             | 40%         |
+| 8    | 10 | 10%         | 90%      | 40%             | 60%         |
+| 8    | 25 | 0%          | 100%     | 0%              | 100%        |
+| 16   | 5  | 0%          | 100%     | 20%             | 80%         |
+| 16   | 10 | 10%         | 90%      | 10%             | 90%         |
+| 16   | 25 | 0%          | 100%     | 20%             | 80%         |
+
+**Trainable params:** rank=4: 372K (0.037%), rank=8: 745K (0.075%), rank=16: 1.49M (0.149%)
+
+**Key findings:**
+
+1. **LoRA breaks base model in 8/9 configs** (≥70% ASR). Very effective attack with minimal parameter count.
+
+2. **Adapter provides partial but inconsistent resistance.** Best case: rank=4, N=25 → base 70% ASR, adapter 40% ASR (+30pp). Worst case: rank=8, N=25 → both 100% ASR.
+
+3. **Non-monotonic with N:** rank=4, N=25 shows HIGHER adapter refusal than N=10. High variance — only 10 test prompts, stochastic generation. Results need larger eval set to stabilize.
+
+4. **LoRA vs full fine-tune comparison (N=5):**
+   - Full fine-tune: 100% ASR on both base + adapter
+   - LoRA rank=4: 80% base ASR, 60% adapter ASR
+   - LoRA is weaker but still devastating. Difference: full ft modifies ALL weights globally; LoRA only updates q_proj/v_proj low-rank delta (~0.037% of params).
+
+5. **Root cause of adapter failure:** Same as full fine-tuning. LoRA shifts q_proj/v_proj → attention patterns change → layer 13 residual stream activations change → adapter W_in (trained on original abliterated activations) is OOD. Hook still fires but correction vector is miscalibrated for the new activation distribution.
+
+**Mitigation options (not yet tried):**
+- Train adapter adversarially against LoRA perturbations (robust training)
+- Move adapter to later layer (LoRA modifies attention; later residual stream may be more stable)
+- Adapter with certifiable Lipschitz bounds on W_in (robust to small activation shifts)
+- Ensemble: multiple adapters at different layers
+
+**Attack comparison taxonomy:**
+| Attack | Access | Cost | Base ASR | Adapter ASR |
+|---|---|---|---|---|
+| Abliteration (L13) | Forward passes | ~minutes | 90% | 0% ✅ |
+| LoRA rank=4, N=5 | Gradients + 5 examples | ~5 min | 80% | 60% ⚠️ |
+| Full fine-tune N=5 | Gradients + 5 examples | ~5 min | 100% | 100% ❌ |
+
+**Conclusion:** Adapter robustly defends against weight-space abliteration (the easiest attack). Against LoRA fine-tuning, it provides partial resistance at low rank/data but fails at higher rank or more data. Fine-tuning attacks require fundamentally different defenses (robust training, activation certification, or moving safety to a separate inference-time module).
+
+---
+
 ## TODO (next session)
 
 ### Gradio app (Phase 4)
