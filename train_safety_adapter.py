@@ -57,7 +57,7 @@ except ImportError:
 MODEL_ID = 'google/gemma-3-1b-it'
 SAE_RELEASE = 'gemma-scope-2-1b-it-res'
 SAE_ID = 'layer_13_width_16k_l0_medium'
-LAYER = 13  # inject adapter here
+LAYER = 13  # inject adapter here (overridden by --layer CLI arg)
 
 # ── Direction extraction ────────────────────────────────────────────────────
 
@@ -215,6 +215,15 @@ def entanglement_loss(adapter, language_dirs: torch.Tensor):
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument('--model-id',
+                    default=MODEL_ID,
+                    help='HuggingFace model ID (default: gemma-3-1b-it)')
+    ap.add_argument('--sae-release',
+                    default=SAE_RELEASE,
+                    help='SAE Lens release name')
+    ap.add_argument('--sae-id',
+                    default=SAE_ID,
+                    help='SAE Lens SAE ID within release')
     ap.add_argument('--epochs', type=int, default=3)
     ap.add_argument('--lr', type=float, default=1e-3)
     ap.add_argument('--d-hidden', type=int, default=256)
@@ -346,14 +355,16 @@ def main():
                              })
             print(f'[wandb] run: {run.url}')
 
-    tok = AutoTokenizer.from_pretrained(MODEL_ID)
-    model = AutoModelForCausalLM.from_pretrained(MODEL_ID, dtype=torch.bfloat16,
+    tok = AutoTokenizer.from_pretrained(args.model_id)
+    if tok.pad_token is None:
+        tok.pad_token = tok.eos_token
+    model = AutoModelForCausalLM.from_pretrained(args.model_id, dtype=torch.bfloat16,
                                                  device_map=device).eval()
 
     # ── Optional: abliterate base model in-memory ─────────────────────────
     if args.abliterate_base:
         print('[abliterate] loading SAE to get safety directions...')
-        sae = SAE.from_pretrained(release=SAE_RELEASE, sae_id=SAE_ID, device='cpu')
+        sae = SAE.from_pretrained(release=args.sae_release, sae_id=args.sae_id, device='cpu')
         W_dec = sae.W_dec.detach().float().cpu()  # [d_sae, d_model]
         del sae  # free memory
 
