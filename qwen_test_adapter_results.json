@@ -1,0 +1,20 @@
+{
+  "original": {
+    "refusal": 0.9,
+    "asr": 0.09999999999999998
+  },
+  "abliterated_no_adapter": {
+    "refusal": 0.7,
+    "asr": 0.30000000000000004
+  },
+  "abliterated_with_adapter": {
+    "refusal": 0.7,
+    "asr": 0.30000000000000004
+  },
+  "meta": {
+    "model": "Qwen/Qwen3-1.7B",
+    "adapter": "safety_adapter_qwen.pt",
+    "n_prompts": 10,
+    "layer": 14
+  }
+}

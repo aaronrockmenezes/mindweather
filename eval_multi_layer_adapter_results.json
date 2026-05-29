@@ -1,0 +1,38 @@
+{
+  "no_adapter": {
+    "refusal": 0.1,
+    "asr": 0.9
+  },
+  "L13": {
+    "refusal": 1.0,
+    "asr": 0.0,
+    "layers": [
+      13
+    ]
+  },
+  "L13+L17": {
+    "refusal": 1.0,
+    "asr": 0.0,
+    "layers": [
+      13,
+      17
+    ]
+  },
+  "L13+L17+L22": {
+    "refusal": 1.0,
+    "asr": 0.0,
+    "layers": [
+      13,
+      17,
+      22
+    ]
+  },
+  "meta": {
+    "adapters": [
+      "safety_adapter_v3.pt",
+      "safety_adapter_v3_L17.pt",
+      "safety_adapter_v3_L22.pt"
+    ],
+    "n_prompts": 10
+  }
+}

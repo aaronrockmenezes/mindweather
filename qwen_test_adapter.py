@@ -129,13 +129,14 @@ def main():
 
     # ── Conditions B + C: abliterated model ──────────────────────────────────
     print('\n[abliterate] loading SAE features...')
-    feat_data = json.loads((repo_root / args.feats).read_text())['features']
+    feat_json = json.loads((repo_root / args.feats).read_text())
+    feat_data = feat_json['features']
     feat_ids = list(
         dict.fromkeys(r['feat_id'] for cat in ['refusal', 'identity']
                       for r in feat_data.get(cat, [])))
     print(f'[abliterate] {len(feat_ids)} safety feature IDs')
 
-    sae_layer_id = feat_data.get('sae_id', SAE_LAYER) if isinstance(feat_data, dict) else SAE_LAYER
+    sae_layer_id = feat_json.get('sae_id', SAE_LAYER)
     sae = SAE.from_pretrained(release=SAE_RELEASE, sae_id=sae_layer_id, device='cpu')
     W_dec = sae.W_dec.detach().float().cpu()
     del sae
@@ -145,9 +146,9 @@ def main():
     for p in model2.parameters():
         p.requires_grad_(False)
 
-    n_layers = model2.config.num_hidden_layers
-    abliterate_model_inplace(model2, feat_ids, W_dec, list(range(n_layers)))
-    print(f'[abliterate] done (all {n_layers} layers)')
+    # Abliterate only the adapter layer (L14) — mirrors Gemma L13-only test
+    abliterate_model_inplace(model2, feat_ids, W_dec, [layer])
+    print(f'[abliterate] done (layer {layer} only)')
 
     print('\n--- CONDITION B: abliterated (no adapter) ---')
     tok2 = AutoTokenizer.from_pretrained(MODEL_ID)

@@ -1,18 +1,18 @@
 {
-  "d_model": 1152,
+  "d_model": 2048,
   "d_hidden": 256,
   "alpha": 1.0,
-  "layer": 13,
+  "layer": 14,
   "n_lang_dirs": 15,
-  "W_out_lang_alignment": 0.8564227819442749,
+  "W_out_lang_alignment": 0.09917420148849487,
   "training": {
-    "epochs": 100,
+    "epochs": 30,
     "lr": 0.001,
     "lambda_suppress": 0.5,
-    "lambda_entangle": 1.0,
-    "n_harmful": 255,
+    "lambda_entangle": 0.1,
+    "n_harmful": 133,
     "batch_size": 8,
-    "abliterate_base": true,
-    "abliterate_layers": "13"
+    "abliterate_base": false,
+    "abliterate_layers": "14"
   }
 }
