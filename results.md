@@ -890,7 +890,49 @@ Fix: abliterate base model in-memory before training (`--abliterate-base`). Adap
 
 **Weak points (prompt injection):** fiction wrapper, educational framing, base64 encoding, token smuggling (`b-o-m-b`), sudo prefix. These bypass the original model — defense against them requires separate work.
 
-**Next:** fine-tuning attack baseline, W_out abliteration empirical cost, prompt injection eval on abliterated+adapter.
+**Prompt injection: abliterated_L13 + v2 adapter vs original model:**
+| Category | Original | Abliterated+Adapter | Δ |
+|---|---|---|---|
+| direct | 100% | 100% | 0 |
+| role_override | 100% | 60% | −40% |
+| context_stuffing | 60% | 20% | −40% |
+| jailbreak_template | 40% | 60% | +20% |
+| multi_turn_sim | 100% | 100% | 0 |
+| **Overall** | **74%** | **58%** | **−16%** |
+
+**Gap:** adapter trained on direct AdvBench format — W_in doesn't recognize fiction wrappers or educational framing as harmful. Fix: add adversarially-framed examples to training set. Jailbreak templates (+20%) actually improve because adapter recognizes aggressive role-playing patterns.
+
+---
+
+### D8i — Fine-tuning Attack Baseline
+
+**Script:** `eval_finetune_attack.py --n-sweep 5,10,25 --steps 30`
+
+**Results (original Gemma + v2 adapter, 10 test prompts):**
+| Condition | Refusal | ASR |
+|---|---|---|
+| Baseline (no attack) | 80% | 20% |
+| Baseline + adapter | 100% | 0% |
+| Fine-tune N=5 | 0% | 100% |
+| Fine-tune N=5 + adapter | 0% | 100% |
+| Fine-tune N=10 | 0% | 100% |
+| Fine-tune N=10 + adapter | 0% | 100% |
+| Fine-tune N=25 | 0% | 100% |
+| Fine-tune N=25 + adapter | 0% | 100% |
+
+**Key finding: 5 training examples completely bypasses both base model and adapter.**
+
+**Why adapter fails against fine-tuning:** Fine-tuning modifies base model weights globally. Layer 13 activations shift to a new regime. Adapter's W_in was trained to detect harmful intent from abliterated-model activations — fine-tuned activations are a different distribution, adapter can't fire.
+
+**Critical distinction:**
+- Abliteration (direction removal) → adapter defends ✅
+- Fine-tuning (unconstrained weight modification) → adapter fails ❌
+
+These are fundamentally different threat models. The adapter is a defense against abliteration specifically, not against arbitrary weight modification.
+
+**For the paper:** State this limitation clearly. Fine-tuning is a harder attack — it requires white-box access + gradient computation + training time. Abliteration only requires forward passes to find directions. The adapter raises the bar for the easier attack class.
+
+**Next:** W_out abliteration empirical cost, add injection-style prompts to training data.
 
 ---
 
