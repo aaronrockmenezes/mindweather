@@ -93,6 +93,8 @@ def main():
     ap.add_argument('--feats', default='features_safety.json')
     ap.add_argument('--goals', default='advbench_goals.json')
     ap.add_argument('--out', default='advbench_results.json')
+    ap.add_argument('--model', default=None,
+                    help='Load model from local path instead of HuggingFace (for abliterated models)')
     args = ap.parse_args()
 
     repo_root  = Path(__file__).parent
@@ -114,9 +116,11 @@ def main():
 
     device = 'mps' if torch.backends.mps.is_available() else 'cpu'
     print(f'[load] device={device}')
-    tok   = AutoTokenizer.from_pretrained(MODEL_ID)
+    model_path = args.model if args.model else MODEL_ID
+    print(f'[load] model from: {model_path}')
+    tok   = AutoTokenizer.from_pretrained(model_path)
     model = AutoModelForCausalLM.from_pretrained(
-        MODEL_ID, dtype=torch.bfloat16, device_map=device).eval()
+        model_path, dtype=torch.bfloat16, device_map=device).eval()
     sae   = SAE.from_pretrained(release=SAE_RELEASE, sae_id=SAE_ID, device=device)
     W_dec = sae.W_dec.detach().float()
 

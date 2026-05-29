@@ -594,6 +594,41 @@ Lower bypass rate on AdvBench (68%) vs custom prompts (86%) because AdvBench inc
 
 ---
 
+### D6 — Weight-space abliteration (2026-05-28)
+
+Script: `abliterate_weights.py`. Extends Arditi et al. 2024 ("Refusal in LLMs is Mediated by a Single Direction") using mechanistically-identified SAE feature directions instead of a single PCA-derived direction.
+
+**Method:** For each of the 13 identified safety feature directions d (SAE decoder rows, unit-norm):
+```
+W_new = W - (W @ d) ⊗ d    [read matrices: q/k/v/gate/up proj]
+W_new = W - d ⊗ (d @ W)    [write matrices: o_proj/down_proj]
+```
+Applied to every layer's weight matrices. Permanent — no hooks or SAE needed at inference.
+
+**Results (AdvBench, n=100):**
+
+| Method | ASR | Inference overhead |
+|---|---|---|
+| Original model | 6% | — |
+| Activation patching (13 feats, hooks) | 69% | SAE encode each forward pass |
+| Weight abliteration — L13 only | 86% | zero |
+| **Weight abliteration — all 26 layers** | **100%** | **zero** |
+
+**All-layers abliteration: 0/100 refusals. Complete bypass.**
+
+L13-only already beats activation patching (86% > 69%) — weight editing is more effective than inference-time hooks because projecting out directions from all matrices prevents the feature from being computed at all, not just suppressed post-hoc.
+
+All-layers achieves 100% ASR: concept of refusal is entirely absent from the model's weight space.
+
+**Comparison to standard abliteration (Arditi 2024):**
+Standard abliteration uses 1 PCA-derived direction from mean(harmful_acts) - mean(harmless_acts). Our method uses 13 SAE-identified directions with known semantic meaning (refusal register, assistant identity). More targeted, interpretable, and requires no prompt collection — just the SAE decoder rows.
+
+**Saved models:**
+- `abliterated_L13/` — layer-13-only edit (86% ASR)
+- `abliterated_all/` — full 26-layer edit (100% ASR)
+
+---
+
 ## TODO (next session)
 
 ### Gradio app (Phase 4)
