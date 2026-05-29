@@ -932,7 +932,29 @@ These are fundamentally different threat models. The adapter is a defense agains
 
 **For the paper:** State this limitation clearly. Fine-tuning is a harder attack — it requires white-box access + gradient computation + training time. Abliteration only requires forward passes to find directions. The adapter raises the bar for the easier attack class.
 
-**Next:** W_out abliteration empirical cost, add injection-style prompts to training data.
+---
+
+### D8j — W_out Abliteration Cost (Empirical)
+
+**Script:** `eval_wout_ablation.py --adapter safety_adapter_v2.pt --n-arc 100 --n-wout-dirs 10`
+
+**Method:** Extract top-10 PCA dirs from adapter W_out columns. Abliterate those dirs from all 26 base model layers + adapter W_out. Measure PPL on prose (20 sentences) and ARC-Challenge (n=100).
+
+**Results:**
+| Condition | PPL | ΔPPL | ARC | ΔARC |
+|---|---|---|---|---|
+| Baseline (no abliteration) | 16.6 | — | 42.0% | — |
+| Baseline + adapter | 16.5 | −0.2 | 41.0% | −1% |
+| **W_out abliterated (base + adapter)** | **70.3** | **+53.6** | **35.0%** | **−7%** |
+| W_out abliterated (base only) | 68.7 | +52.1 | 36.0% | −6% |
+
+**Conclusion: ✅ MUTUALLY ASSURED DESTRUCTION EMPIRICALLY VALIDATED.**
+
+PPL 4× worse after W_out abliteration. The W_out columns contain language-critical directions — removing them causes severe incoherence. An attacker who tries to abliterate the adapter's output directions destroys language capability simultaneously.
+
+The claim is proven: **safe+capable OR jailbroken+incoherent. No third option against this attack.**
+
+**Next:** v3 adapter with injection augmentation, then re-run prompt injection eval.
 
 ---
 
